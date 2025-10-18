@@ -171,27 +171,27 @@ pub trait ResultExt<T> {
 
 impl<T> ResultExt<T> for Result<T> {
     fn context_status(self, status: StatusCode, title: &str, detail: &str) -> ApiResult<T> {
-        self.or_else(|err| Err(err.context_status(status, title, detail)))
+        self.map_err(|err| err.context_status(status, title, detail))
     }
 
     fn context_bad_request(self, title: &str, detail: &str) -> ApiResult<T> {
-        self.or_else(|err| Err(err.context_bad_request(title, detail)))
+        self.map_err(|err| err.context_bad_request(title, detail))
     }
 
     fn context_unauthenticated(self, title: &str, detail: &str) -> ApiResult<T> {
-        self.or_else(|err| Err(err.context_unauthenticated(title, detail)))
+        self.map_err(|err| err.context_unauthenticated(title, detail))
     }
 
     fn context_unauthorized(self, title: &str, detail: &str) -> ApiResult<T> {
-        self.or_else(|err| Err(err.context_unauthorized(title, detail)))
+        self.map_err(|err| err.context_unauthorized(title, detail))
     }
 
     fn context_not_found(self, title: &str, detail: &str) -> ApiResult<T> {
-        self.or_else(|err| Err(err.context_not_found(title, detail)))
+        self.map_err(|err| err.context_not_found(title, detail))
     }
 
     fn context_internal(self, title: &str, detail: &str) -> ApiResult<T> {
-        self.or_else(|err| Err(err.context_internal(title, detail)))
+        self.map_err(|err| err.context_internal(title, detail))
     }
 }
 
