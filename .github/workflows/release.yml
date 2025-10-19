@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'kosolabs' }}
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - &checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - &rust-version
+        id: rust-version
+        run: |
+          VERSION=$(cat rust-toolchain.toml | sed -rn 's/^channel = "([0-9]+\.[0-9]+\.[0-9]+)"/\1/p')
+          if [ -z "${VERSION}" ]; then
+            echo "Version not found in rust-toolchain.toml"
+            exit 1
+          fi
+          echo VERSION=$VERSION >> "$GITHUB_OUTPUT"
+      - &install-rust
+        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # master
+        with:
+          toolchain: ${{ steps.rust-version.outputs.VERSION }}
+          components: rustfmt,clippy
+      - uses: release-plz/action@v0.5
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pr:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'kosolabs' }}
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: release-plz-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - *checkout
+      - *rust-version
+      - *install-rust
+      - uses: release-plz/action@v0.5
+        with:
+          command: release-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
