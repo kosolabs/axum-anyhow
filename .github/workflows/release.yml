@@ -51,7 +51,7 @@ jobs:
       - *checkout
       - *rust-version
       - *install-rust
-      - uses: release-plz/action@v0.5
+      - uses: release-plz/action@d529f731ae3e89610ada96eda34e5c6ba3b12214 # v0.5.118
         with:
           command: release-pr
         env:
