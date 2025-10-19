@@ -1,5 +1,6 @@
 [package]
 name = "axum-anyhow"
+description = "Ergonomic error handling for Axum using anyhow"
 version = "0.1.0"
 edition = "2021"
 authors = ["Shad Sharma <shadanan@gmail.com>"]
