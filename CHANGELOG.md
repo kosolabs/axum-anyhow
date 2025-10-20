@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2](https://github.com/kosolabs/axum-anyhow/compare/v0.1.1...v0.1.2) - 2025-10-20
+
+### Other
+
+- Use a PAT to enable Release-plz to run CI ([#13](https://github.com/kosolabs/axum-anyhow/pull/13))
+- Revert "Allow manual triggering of workflow on PRs from non-collaborators ([#10](https://github.com/kosolabs/axum-anyhow/pull/10))" ([#11](https://github.com/kosolabs/axum-anyhow/pull/11))
+
 ## [0.1.1](https://github.com/kosolabs/axum-anyhow/compare/v0.1.0...v0.1.1) - 2025-10-20
 
 ### Other
