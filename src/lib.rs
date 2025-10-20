@@ -24,7 +24,7 @@
 //!     let id = parse_id(&id).context_bad_request("Invalid User ID", "User ID must be a u32")?;
 //!
 //!     // Convert Option::None to 404 Not Found
-//!     let user = fetch_user(id).ok_or_not_found("User Not Found", "No user with that ID")?;
+//!     let user = fetch_user(id).context_not_found("User Not Found", "No user with that ID")?;
 //!
 //!     Ok(Json(user))
 //! }
@@ -207,7 +207,7 @@ impl<T> ResultExt<T> for Result<T> {
 ///
 /// async fn handler(id: u32) -> ApiResult<String> {
 ///     let user = find_user(id)
-///         .ok_or_not_found("User Not Found", "No user with that ID exists")?;
+///         .context_not_found("User Not Found", "No user with that ID exists")?;
 ///     Ok(user)
 /// }
 ///
@@ -228,7 +228,7 @@ pub trait OptionExt<T> {
     /// * `status` - The HTTP status code to use
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
-    fn ok_or_status(self, status: StatusCode, title: &str, detail: &str) -> ApiResult<T>;
+    fn context_status(self, status: StatusCode, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts `None` to a 400 Bad Request error.
     ///
@@ -236,7 +236,7 @@ pub trait OptionExt<T> {
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
-    fn ok_or_bad_request(self, title: &str, detail: &str) -> ApiResult<T>;
+    fn context_bad_request(self, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts `None` to a 401 Unauthorized error (for authentication failures).
     ///
@@ -244,7 +244,7 @@ pub trait OptionExt<T> {
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
-    fn ok_or_unauthenticated(self, title: &str, detail: &str) -> ApiResult<T>;
+    fn context_unauthenticated(self, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts `None` to a 403 Forbidden error (for authorization failures).
     ///
@@ -252,7 +252,7 @@ pub trait OptionExt<T> {
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
-    fn ok_or_unauthorized(self, title: &str, detail: &str) -> ApiResult<T>;
+    fn context_unauthorized(self, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts `None` to a 404 Not Found error.
     ///
@@ -260,7 +260,7 @@ pub trait OptionExt<T> {
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
-    fn ok_or_not_found(self, title: &str, detail: &str) -> ApiResult<T>;
+    fn context_not_found(self, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts `None` to a 500 Internal Server Error.
     ///
@@ -268,32 +268,32 @@ pub trait OptionExt<T> {
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
-    fn ok_or_internal(self, title: &str, detail: &str) -> ApiResult<T>;
+    fn context_internal(self, title: &str, detail: &str) -> ApiResult<T>;
 }
 
 impl<T> OptionExt<T> for Option<T> {
-    fn ok_or_status(self, status: StatusCode, title: &str, detail: &str) -> ApiResult<T> {
+    fn context_status(self, status: StatusCode, title: &str, detail: &str) -> ApiResult<T> {
         self.ok_or_else(|| api_error(status, title, detail))
     }
 
-    fn ok_or_bad_request(self, title: &str, detail: &str) -> ApiResult<T> {
-        self.ok_or_status(StatusCode::BAD_REQUEST, title, detail)
+    fn context_bad_request(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.context_status(StatusCode::BAD_REQUEST, title, detail)
     }
 
-    fn ok_or_unauthenticated(self, title: &str, detail: &str) -> ApiResult<T> {
-        self.ok_or_status(StatusCode::UNAUTHORIZED, title, detail)
+    fn context_unauthenticated(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.context_status(StatusCode::UNAUTHORIZED, title, detail)
     }
 
-    fn ok_or_unauthorized(self, title: &str, detail: &str) -> ApiResult<T> {
-        self.ok_or_status(StatusCode::FORBIDDEN, title, detail)
+    fn context_unauthorized(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.context_status(StatusCode::FORBIDDEN, title, detail)
     }
 
-    fn ok_or_not_found(self, title: &str, detail: &str) -> ApiResult<T> {
-        self.ok_or_status(StatusCode::NOT_FOUND, title, detail)
+    fn context_not_found(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.context_status(StatusCode::NOT_FOUND, title, detail)
     }
 
-    fn ok_or_internal(self, title: &str, detail: &str) -> ApiResult<T> {
-        self.ok_or_status(StatusCode::INTERNAL_SERVER_ERROR, title, detail)
+    fn context_internal(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.context_status(StatusCode::INTERNAL_SERVER_ERROR, title, detail)
     }
 }
 
@@ -720,9 +720,9 @@ mod tests {
     }
 
     #[test]
-    fn test_option_ext_ok_or_bad_request_on_none() {
+    fn test_option_ext_context_bad_request_on_none() {
         let option: Option<i32> = None;
-        let api_result = option.ok_or_bad_request("Bad Request", "Value is required");
+        let api_result = option.context_bad_request("Bad Request", "Value is required");
 
         assert!(api_result.is_err());
         let err = api_result.unwrap_err();
@@ -732,18 +732,18 @@ mod tests {
     }
 
     #[test]
-    fn test_option_ext_ok_or_bad_request_on_some() {
+    fn test_option_ext_context_bad_request_on_some() {
         let option: Option<i32> = Some(42);
-        let api_result = option.ok_or_bad_request("Bad Request", "Value is required");
+        let api_result = option.context_bad_request("Bad Request", "Value is required");
 
         assert!(api_result.is_ok());
         assert_eq!(api_result.unwrap(), 42);
     }
 
     #[test]
-    fn test_option_ext_ok_or_unauthenticated() {
+    fn test_option_ext_context_unauthenticated() {
         let option: Option<String> = None;
-        let api_result = option.ok_or_unauthenticated("Unauthenticated", "Token missing");
+        let api_result = option.context_unauthenticated("Unauthenticated", "Token missing");
 
         assert!(api_result.is_err());
         let err = api_result.unwrap_err();
@@ -753,9 +753,9 @@ mod tests {
     }
 
     #[test]
-    fn test_option_ext_ok_or_unauthorized() {
+    fn test_option_ext_context_unauthorized() {
         let option: Option<String> = None;
-        let api_result = option.ok_or_unauthorized("Unauthorized", "No access");
+        let api_result = option.context_unauthorized("Unauthorized", "No access");
 
         assert!(api_result.is_err());
         let err = api_result.unwrap_err();
@@ -765,9 +765,9 @@ mod tests {
     }
 
     #[test]
-    fn test_option_ext_ok_or_not_found() {
+    fn test_option_ext_context_not_found() {
         let option: Option<String> = None;
-        let api_result = option.ok_or_not_found("Not Found", "Resource missing");
+        let api_result = option.context_not_found("Not Found", "Resource missing");
 
         assert!(api_result.is_err());
         let err = api_result.unwrap_err();
@@ -777,9 +777,9 @@ mod tests {
     }
 
     #[test]
-    fn test_option_ext_ok_or_internal() {
+    fn test_option_ext_context_internal() {
         let option: Option<String> = None;
-        let api_result = option.ok_or_internal("Internal Error", "Config missing");
+        let api_result = option.context_internal("Internal Error", "Config missing");
 
         assert!(api_result.is_err());
         let err = api_result.unwrap_err();
@@ -789,9 +789,9 @@ mod tests {
     }
 
     #[test]
-    fn test_option_ext_ok_or_status() {
+    fn test_option_ext_context_status() {
         let option: Option<String> = None;
-        let api_result = option.ok_or_status(StatusCode::CONFLICT, "Conflict", "Already exists");
+        let api_result = option.context_status(StatusCode::CONFLICT, "Conflict", "Already exists");
 
         assert!(api_result.is_err());
         let err = api_result.unwrap_err();
@@ -846,7 +846,7 @@ mod tests {
             None
         }
 
-        let result = get_value().ok_or_not_found("Not Found", "Value does not exist");
+        let result = get_value().context_not_found("Not Found", "Value does not exist");
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().status, StatusCode::NOT_FOUND);
@@ -869,7 +869,7 @@ mod tests {
     fn test_question_mark_operator_with_option() {
         fn helper() -> ApiResult<i32> {
             let value: Option<i32> = None;
-            value.ok_or_not_found("Not Found", "Missing")?;
+            value.context_not_found("Not Found", "Missing")?;
             Ok(42)
         }
 

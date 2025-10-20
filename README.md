@@ -50,7 +50,7 @@ async fn get_user_handler(id: String) -> ApiResult<Json<User>> {
     let id = parse_id(&id).context_bad_request("Invalid User ID", "User ID must be a u32")?;
 
     // Convert Option::None to 404 Not Found
-    let user = fetch_user(id).ok_or_not_found("User Not Found", "No user with that ID")?;
+    let user = fetch_user(id).context_not_found("User Not Found", "No user with that ID")?;
 
     Ok(Json(user))
 }
@@ -183,7 +183,7 @@ use axum_anyhow::{ApiResult, OptionExt};
 async fn find_user(id: u32) -> ApiResult<User> {
     // Return 404 if user not found
     let user = database_lookup(id)
-        .ok_or_not_found("User Not Found", "No user with that ID exists")?;
+        .context_not_found("User Not Found", "No user with that ID exists")?;
 
     Ok(user)
 }
@@ -277,7 +277,7 @@ async fn handler_bad_request_result() -> ApiResult<Json<Response>> {
 
 async fn handler_not_found_option() -> ApiResult<Json<Response>> {
     find_resource()
-        .ok_or_not_found("Not Found", "The requested resource does not exist")?;
+        .context_not_found("Not Found", "The requested resource does not exist")?;
     Ok(Json(Response {
         message: "Found".to_string(),
     }))
@@ -332,7 +332,7 @@ async fn get_user(id: u32) -> Result<Json<User>, (StatusCode, Json<ErrorResponse
 ```rust
 async fn get_user(id: u32) -> ApiResult<Json<User>> {
     let user = database.find_user(id)
-        .ok_or_not_found("Not Found", "User not found")?;
+        .context_not_found("Not Found", "User not found")?;
     Ok(Json(user))
 }
 ```
