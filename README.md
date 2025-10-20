@@ -20,7 +20,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-axum-anyhow = "0.1"
+axum-anyhow = "0.2"
 anyhow = "1.0"
 axum = "0.8"
 ```
