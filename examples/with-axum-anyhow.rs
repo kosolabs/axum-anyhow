@@ -20,7 +20,7 @@ async fn get_user_handler(id: String) -> ApiResult<Json<User>> {
     let id = parse_id(&id).context_bad_request("Invalid User ID", "User ID must be a u32")?;
 
     // Convert Option::None to 404 Not Found
-    let user = fetch_user(id).ok_or_not_found("User Not Found", "No user with that ID")?;
+    let user = fetch_user(id).context_not_found("User Not Found", "No user with that ID")?;
 
     Ok(Json(user))
 }

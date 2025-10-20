@@ -34,7 +34,8 @@ async fn handler_bad_request_result() -> ApiResult<Json<Response>> {
 }
 
 async fn handler_bad_request_option() -> ApiResult<Json<Response>> {
-    error_option().ok_or_bad_request("Bad Request", "The option was None")?;
+    // error_option().cont
+    error_option().context_bad_request("Bad Request", "The option was None")?;
     Ok(Json(Response {}))
 }
 
