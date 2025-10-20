@@ -6,15 +6,6 @@
 //! `Option` types into HTTP error responses with proper status codes, titles, and
 //! details.
 //!
-//!
-//! ## Features
-//!
-//! - Convert `anyhow::Result` to API errors with custom HTTP status codes
-//! - Convert `Option` to API errors when `None` is encountered
-//! - Helper functions for common HTTP error codes (400, 401, 403, 404, 500)
-//! - Automatic JSON serialization of error responses
-//! - Seamless integration with Axum's `IntoResponse` trait
-//!
 //! ## Example
 //!
 //! ```rust
@@ -28,26 +19,25 @@
 //!     name: String,
 //! }
 //!
-//! async fn get_user(id: u32) -> ApiResult<Json<User>> {
+//! async fn handler(id: String) -> ApiResult<Json<User>> {
 //!     // Convert Result errors to 400 Bad Request
-//!     let user_data = fetch_user(id)
-//!         .context_bad_request("Invalid User", "User data is invalid")?;
-//!     
+//!     let id = parse_id(&id).context_bad_request("Invalid User ID", "User ID must be a u32")?;
+//!
 //!     // Convert Option::None to 404 Not Found
-//!     let user = parse_user(user_data)
-//!         .ok_or_not_found("User Not Found", "No user with that ID")?;
-//!     
+//!     let user = fetch_user(id).ok_or_not_found("User Not Found", "No user with that ID")?;
+//!
 //!     Ok(Json(user))
 //! }
 //!
-//! fn fetch_user(id: u32) -> Result<String> {
-//!     // ... implementation
-//! #   Ok("user data".to_string())
+//! fn fetch_user(id: u32) -> Option<User> {
+//!     (id == 1).then(|| User {
+//!         id,
+//!         name: "Alice".to_string(),
+//!     })
 //! }
 //!
-//! fn parse_user(data: String) -> Option<User> {
-//!     // ... implementation
-//! #   Some(User { id: 1, name: "Alice".to_string() })
+//! fn parse_id(id: &str) -> Result<u32> {
+//!     Ok(id.parse::<u32>()?)
 //! }
 //! ```
 
