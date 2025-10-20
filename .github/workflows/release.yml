@@ -12,6 +12,8 @@ jobs:
     permissions:
       contents: write
       id-token: write
+    environment:
+      name: axum-anyhow-crate
     steps:
       - uses: actions/checkout@v5.0.0
       - uses: moonrepo/setup-rust@v1
@@ -29,6 +31,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    environment:
+      name: axum-anyhow-crate
     concurrency:
       group: release-plz-${{ github.ref }}
       cancel-in-progress: false
