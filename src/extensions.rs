@@ -1,7 +1,6 @@
+use crate::{ApiError, ApiResult};
 use anyhow::Result;
 use axum::http::StatusCode;
-
-use crate::{ApiError, ApiResult};
 
 /// Extension trait for `anyhow::Result` to convert errors into `ApiError` with HTTP
 /// status codes.
