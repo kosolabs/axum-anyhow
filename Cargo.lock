@@ -76,7 +76,9 @@ version = "0.3.0"
 dependencies = [
  "anyhow",
  "axum",
+ "http-body-util",
  "serde",
+ "serde_json",
  "tokio",
  "tokio-test",
 ]
