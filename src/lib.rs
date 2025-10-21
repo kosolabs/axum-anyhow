@@ -41,7 +41,7 @@
 //! }
 //! ```
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
@@ -273,7 +273,13 @@ pub trait OptionExt<T> {
 
 impl<T> OptionExt<T> for Option<T> {
     fn context_status(self, status: StatusCode, title: &str, detail: &str) -> ApiResult<T> {
-        self.ok_or_else(|| api_error(status, title, detail))
+        self.ok_or_else(|| {
+            ApiError::builder()
+                .status(status)
+                .title(title)
+                .detail(detail)
+                .build()
+        })
     }
 
     fn context_bad_request(self, title: &str, detail: &str) -> ApiResult<T> {
@@ -368,7 +374,12 @@ where
     E: Into<anyhow::Error>,
 {
     fn context_status(self, status: StatusCode, title: &str, detail: &str) -> ApiError {
-        api_error(status, title, detail)
+        ApiError::builder()
+            .status(status)
+            .title(title)
+            .detail(detail)
+            .error(self)
+            .build()
     }
 
     fn context_bad_request(self, title: &str, detail: &str) -> ApiError {
@@ -392,34 +403,6 @@ where
     }
 }
 
-/// Creates an `ApiError` with the specified status code, title, and detail.
-///
-/// # Arguments
-///
-/// * `status` - The HTTP status code
-/// * `title` - A short, human-readable summary of the error
-/// * `detail` - A detailed explanation of the error
-///
-/// # Example
-///
-/// ```rust
-/// use axum::http::StatusCode;
-/// use axum_anyhow::api_error;
-///
-/// let error = api_error(
-///     StatusCode::CONFLICT,
-///     "Conflict",
-///     "A user with this email already exists"
-/// );
-/// ```
-pub fn api_error(status: StatusCode, title: &str, detail: &str) -> ApiError {
-    ApiError {
-        status,
-        title: title.to_string(),
-        detail: detail.to_string(),
-    }
-}
-
 /// Creates a 400 Bad Request error.
 ///
 /// # Arguments
@@ -435,7 +418,11 @@ pub fn api_error(status: StatusCode, title: &str, detail: &str) -> ApiError {
 /// let error = bad_request("Invalid Input", "Email format is invalid");
 /// ```
 pub fn bad_request(title: &str, detail: &str) -> ApiError {
-    api_error(StatusCode::BAD_REQUEST, title, detail)
+    ApiError::builder()
+        .status(StatusCode::BAD_REQUEST)
+        .title(title)
+        .detail(detail)
+        .build()
 }
 
 /// Creates a 401 Unauthorized error (for authentication failures).
@@ -453,7 +440,11 @@ pub fn bad_request(title: &str, detail: &str) -> ApiError {
 /// let error = unauthenticated("Unauthenticated", "No valid authentication token provided");
 /// ```
 pub fn unauthenticated(title: &str, detail: &str) -> ApiError {
-    api_error(StatusCode::UNAUTHORIZED, title, detail)
+    ApiError::builder()
+        .status(StatusCode::UNAUTHORIZED)
+        .title(title)
+        .detail(detail)
+        .build()
 }
 
 /// Creates a 403 Forbidden error (for authorization failures).
@@ -471,7 +462,11 @@ pub fn unauthenticated(title: &str, detail: &str) -> ApiError {
 /// let error = unauthorized("Forbidden", "You do not have permission to access this resource");
 /// ```
 pub fn unauthorized(title: &str, detail: &str) -> ApiError {
-    api_error(StatusCode::FORBIDDEN, title, detail)
+    ApiError::builder()
+        .status(StatusCode::FORBIDDEN)
+        .title(title)
+        .detail(detail)
+        .build()
 }
 
 /// Creates a 404 Not Found error.
@@ -489,7 +484,11 @@ pub fn unauthorized(title: &str, detail: &str) -> ApiError {
 /// let error = not_found("Not Found", "The requested user does not exist");
 /// ```
 pub fn not_found(title: &str, detail: &str) -> ApiError {
-    api_error(StatusCode::NOT_FOUND, title, detail)
+    ApiError::builder()
+        .status(StatusCode::NOT_FOUND)
+        .title(title)
+        .detail(detail)
+        .build()
 }
 
 /// Creates a 500 Internal Server Error.
@@ -507,7 +506,11 @@ pub fn not_found(title: &str, detail: &str) -> ApiError {
 /// let error = internal_error("Internal Error", "Database connection failed");
 /// ```
 pub fn internal_error(title: &str, detail: &str) -> ApiError {
-    api_error(StatusCode::INTERNAL_SERVER_ERROR, title, detail)
+    ApiError::builder()
+        .status(StatusCode::INTERNAL_SERVER_ERROR)
+        .title(title)
+        .detail(detail)
+        .build()
 }
 
 /// Converts from `anyhow::Error` to `ApiError`.
@@ -519,7 +522,7 @@ where
     E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
-        err.context_internal("Internal Error", "Something went wrong")
+        ApiError::builder().error(err).build()
     }
 }
 
@@ -549,6 +552,7 @@ where
 ///     status: StatusCode::NOT_FOUND,
 ///     title: "Not Found".to_string(),
 ///     detail: "User not found".to_string(),
+///     error: None,
 /// };
 /// ```
 #[derive(Debug)]
@@ -559,6 +563,211 @@ pub struct ApiError {
     pub title: String,
     /// A detailed explanation of the error
     pub detail: String,
+    /// The underlying error that caused this API error
+    pub error: Option<Error>,
+}
+
+impl ApiError {
+    /// Creates a new builder for constructing an `ApiError`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum::http::StatusCode;
+    /// use axum_anyhow::ApiError;
+    /// use anyhow::anyhow;
+    ///
+    /// let error = ApiError::builder()
+    ///     .status(StatusCode::BAD_REQUEST)
+    ///     .title("Validation Error")
+    ///     .detail("Email address is required")
+    ///     .build();
+    /// ```
+    pub fn builder() -> ApiErrorBuilder {
+        ApiErrorBuilder::default()
+    }
+}
+
+impl Default for ApiError {
+    /// Creates a default `ApiError` with:
+    /// - `status`: `StatusCode::INTERNAL_SERVER_ERROR`
+    /// - `title`: `"Internal Error"`
+    /// - `detail`: `"Something went wrong"`
+    /// - `error`: `None`
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum::http::StatusCode;
+    /// use axum_anyhow::ApiError;
+    ///
+    /// let error = ApiError::default();
+    /// assert_eq!(error.status, StatusCode::INTERNAL_SERVER_ERROR);
+    /// assert_eq!(error.title, "Internal Error");
+    /// assert_eq!(error.detail, "Something went wrong");
+    /// assert!(error.error.is_none());
+    /// ```
+    fn default() -> Self {
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            title: "Internal Error".to_string(),
+            detail: "Something went wrong".to_string(),
+            error: None,
+        }
+    }
+}
+
+/// A builder for constructing `ApiError` instances.
+///
+/// This builder provides a fluent interface for creating `ApiError` instances with
+/// optional fields. The `status`, `title`, and `detail` fields are required and must
+/// be set before calling `build()`.
+///
+/// # Example
+///
+/// ```rust
+/// use axum::http::StatusCode;
+/// use axum_anyhow::ApiError;
+/// use anyhow::anyhow;
+///
+/// let error = ApiError::builder()
+///     .status(StatusCode::INTERNAL_SERVER_ERROR)
+///     .title("Database Error")
+///     .detail("Failed to connect to the database")
+///     .error(anyhow!("Connection timeout"))
+///     .build();
+/// ```
+#[derive(Default)]
+pub struct ApiErrorBuilder {
+    status: Option<StatusCode>,
+    title: Option<String>,
+    detail: Option<String>,
+    error: Option<Error>,
+}
+
+impl ApiErrorBuilder {
+    /// Sets the HTTP status code for the error.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum::http::StatusCode;
+    /// use axum_anyhow::ApiError;
+    ///
+    /// let error = ApiError::builder()
+    ///     .status(StatusCode::NOT_FOUND)
+    ///     .title("Not Found")
+    ///     .detail("Resource not found")
+    ///     .build();
+    /// ```
+    pub fn status(mut self, status: StatusCode) -> Self {
+        self.status = Some(status);
+        self
+    }
+
+    /// Sets the title for the error.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum::http::StatusCode;
+    /// use axum_anyhow::ApiError;
+    ///
+    /// let error = ApiError::builder()
+    ///     .status(StatusCode::BAD_REQUEST)
+    ///     .title("Invalid Input")
+    ///     .detail("The provided email is invalid")
+    ///     .build();
+    /// ```
+    pub fn title(mut self, title: impl Into<String>) -> Self {
+        self.title = Some(title.into());
+        self
+    }
+
+    /// Sets the detail message for the error.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum::http::StatusCode;
+    /// use axum_anyhow::ApiError;
+    ///
+    /// let error = ApiError::builder()
+    ///     .status(StatusCode::FORBIDDEN)
+    ///     .title("Access Denied")
+    ///     .detail("You do not have permission to access this resource")
+    ///     .build();
+    /// ```
+    pub fn detail(mut self, detail: impl Into<String>) -> Self {
+        self.detail = Some(detail.into());
+        self
+    }
+
+    /// Sets the underlying error that caused this API error.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum::http::StatusCode;
+    /// use axum_anyhow::ApiError;
+    /// use anyhow::anyhow;
+    ///
+    /// let error = ApiError::builder()
+    ///     .status(StatusCode::INTERNAL_SERVER_ERROR)
+    ///     .title("Database Error")
+    ///     .detail("Failed to execute query")
+    ///     .error(anyhow!("Connection pool exhausted"))
+    ///     .build();
+    ///
+    /// assert_eq!(error.status, StatusCode::INTERNAL_SERVER_ERROR);
+    /// assert_eq!(error.title, "Database Error");
+    /// assert_eq!(error.detail, "Failed to execute query");
+    /// assert_eq!(error.error.unwrap().to_string(), "Connection pool exhausted");
+    /// ```
+    pub fn error(mut self, error: impl Into<Error>) -> Self {
+        self.error = Some(error.into());
+        self
+    }
+
+    /// Builds the `ApiError` instance.
+    ///
+    /// If `status`, `title`, or `detail` have not been set, they will default to:
+    /// - `status`: `StatusCode::INTERNAL_SERVER_ERROR`
+    /// - `title`: `"Internal Error"`
+    /// - `detail`: `"Something went wrong"`
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum::http::StatusCode;
+    /// use axum_anyhow::ApiError;
+    ///
+    /// let error = ApiError::builder()
+    ///     .status(StatusCode::BAD_REQUEST)
+    ///     .title("Bad Request")
+    ///     .detail("Invalid request parameters")
+    ///     .build();
+    ///
+    /// assert_eq!(error.status, StatusCode::BAD_REQUEST);
+    /// assert_eq!(error.title, "Bad Request");
+    /// assert_eq!(error.detail, "Invalid request parameters");
+    ///
+    /// // Using defaults
+    /// let default_error = ApiError::builder().build();
+    /// assert_eq!(default_error.status, StatusCode::INTERNAL_SERVER_ERROR);
+    /// assert_eq!(default_error.title, "Internal Error");
+    /// assert_eq!(default_error.detail, "Something went wrong");
+    /// ```
+    pub fn build(self) -> ApiError {
+        ApiError {
+            status: self.status.unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            title: self.title.unwrap_or_else(|| "Internal Error".to_string()),
+            detail: self
+                .detail
+                .unwrap_or_else(|| "Something went wrong".to_string()),
+            error: self.error,
+        }
+    }
 }
 
 /// The JSON structure used in error responses.
@@ -589,14 +798,6 @@ impl IntoResponse for ApiError {
 mod tests {
     use super::*;
     use anyhow::anyhow;
-
-    #[test]
-    fn test_api_error_creation() {
-        let err = api_error(StatusCode::BAD_REQUEST, "Bad Request", "Invalid input");
-        assert_eq!(err.status, StatusCode::BAD_REQUEST);
-        assert_eq!(err.title, "Bad Request");
-        assert_eq!(err.detail, "Invalid input");
-    }
 
     #[test]
     fn test_bad_request_helper() {
@@ -887,5 +1088,142 @@ mod tests {
         let result = returns_api_result();
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "success");
+    }
+
+    #[test]
+    fn test_api_error_builder() {
+        let error = ApiError::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .title("Validation Error")
+            .detail("Email is required")
+            .build();
+
+        assert_eq!(error.status, StatusCode::BAD_REQUEST);
+        assert_eq!(error.title, "Validation Error");
+        assert_eq!(error.detail, "Email is required");
+        assert!(error.error.is_none());
+    }
+
+    #[test]
+    fn test_api_error_builder_with_error() {
+        let underlying_error = anyhow!("Database connection failed");
+        let error = ApiError::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .title("Database Error")
+            .detail("Could not connect to the database")
+            .error(underlying_error)
+            .build();
+
+        assert_eq!(error.status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(error.title, "Database Error");
+        assert_eq!(error.detail, "Could not connect to the database");
+        assert!(error.error.is_some());
+    }
+
+    #[test]
+    fn test_api_error_builder_with_string_conversions() {
+        let error = ApiError::builder()
+            .status(StatusCode::NOT_FOUND)
+            .title("Not Found".to_string())
+            .detail("Resource not found".to_string())
+            .build();
+
+        assert_eq!(error.status, StatusCode::NOT_FOUND);
+        assert_eq!(error.title, "Not Found");
+        assert_eq!(error.detail, "Resource not found");
+    }
+
+    #[test]
+    fn test_api_error_builder_missing_status() {
+        let error = ApiError::builder()
+            .title("Error")
+            .detail("Something went wrong")
+            .build();
+
+        assert_eq!(error.status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(error.title, "Error");
+        assert_eq!(error.detail, "Something went wrong");
+    }
+
+    #[test]
+    fn test_api_error_builder_missing_title() {
+        let error = ApiError::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .detail("Something went wrong")
+            .build();
+
+        assert_eq!(error.status, StatusCode::BAD_REQUEST);
+        assert_eq!(error.title, "Internal Error");
+        assert_eq!(error.detail, "Something went wrong");
+    }
+
+    #[test]
+    fn test_api_error_builder_missing_detail() {
+        let error = ApiError::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .title("Error")
+            .build();
+
+        assert_eq!(error.status, StatusCode::BAD_REQUEST);
+        assert_eq!(error.title, "Error");
+        assert_eq!(error.detail, "Something went wrong");
+    }
+
+    #[test]
+    fn test_api_error_builder_all_defaults() {
+        let error = ApiError::builder().build();
+
+        assert_eq!(error.status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(error.title, "Internal Error");
+        assert_eq!(error.detail, "Something went wrong");
+        assert!(error.error.is_none());
+    }
+
+    #[test]
+    fn test_api_error_builder_fluent_interface() {
+        let error = ApiError::builder()
+            .status(StatusCode::CONFLICT)
+            .title("Conflict")
+            .detail("User already exists")
+            .error(anyhow!("Duplicate email"))
+            .build();
+
+        assert_eq!(error.status, StatusCode::CONFLICT);
+        assert_eq!(error.title, "Conflict");
+        assert_eq!(error.detail, "User already exists");
+        assert!(error.error.is_some());
+    }
+
+    #[test]
+    fn test_api_error_default() {
+        let error = ApiError::default();
+
+        assert_eq!(error.status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(error.title, "Internal Error");
+        assert_eq!(error.detail, "Something went wrong");
+        assert!(error.error.is_none());
+    }
+
+    #[test]
+    fn test_anyhow_error_coerced_to_api_error_has_defaults() {
+        let anyhow_err = anyhow!("Some error occurred");
+        let api_err: ApiError = anyhow_err.into();
+
+        assert_eq!(api_err.status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(api_err.title, "Internal Error");
+        assert_eq!(api_err.detail, "Something went wrong");
+        assert!(api_err.error.is_some());
+    }
+
+    #[test]
+    fn test_api_error_default_matches_builder_defaults() {
+        let from_default = ApiError::default();
+        let from_builder = ApiError::builder().build();
+
+        assert_eq!(from_default.status, from_builder.status);
+        assert_eq!(from_default.title, from_builder.title);
+        assert_eq!(from_default.detail, from_builder.detail);
+        assert!(from_default.error.is_none());
+        assert!(from_builder.error.is_none());
     }
 }

@@ -210,15 +210,17 @@ You can also create errors directly without Results or Options:
 use axum_anyhow::{bad_request, not_found, unauthorized, ApiError};
 use axum::http::StatusCode;
 
-// Using helper functions
+// Using helper functions for common status codes
 let error = bad_request("Invalid Input", "Name cannot be empty");
+let error = not_found("Not Found", "Resource does not exist");
+let error = unauthorized("Forbidden", "Insufficient permissions");
 
-// Using the generic constructor
-let error = api_error(
-    StatusCode::CONFLICT,
-    "Conflict",
-    "A user with this email already exists"
-);
+// Using the builder for custom status codes
+let error = ApiError::builder()
+    .status(StatusCode::CONFLICT)
+    .title("Conflict")
+    .detail("A user with this email already exists")
+    .build();
 ```
 
 ### Error Response Format
