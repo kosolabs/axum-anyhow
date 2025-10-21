@@ -291,6 +291,8 @@ impl ApiErrorBuilder {
 mod tests {
     use super::*;
     use anyhow::anyhow;
+    use http_body_util::BodyExt;
+    use serde_json::Value;
 
     #[test]
     fn test_into_api_error_from_anyhow() {
@@ -437,5 +439,40 @@ mod tests {
         assert_eq!(from_default.detail, from_builder.detail);
         assert!(from_default.error.is_none());
         assert!(from_builder.error.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_into_response_status() {
+        let api_err = ApiError::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .title("Bad Request")
+            .detail("Invalid data")
+            .build();
+
+        let response = api_err.into_response();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_into_response_json_structure() {
+        let api_err = ApiError::builder()
+            .status(StatusCode::NOT_FOUND)
+            .title("Not Found")
+            .detail("Resource does not exist")
+            .build();
+
+        let response = api_err.into_response();
+
+        // Verify status
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        // Verify JSON body structure
+        let body = response.into_body();
+        let bytes = body.collect().await.unwrap().to_bytes();
+        let json: Value = serde_json::from_slice(&bytes).unwrap();
+
+        assert_eq!(json["status"], 404);
+        assert_eq!(json["title"], "Not Found");
+        assert_eq!(json["detail"], "Resource does not exist");
     }
 }
