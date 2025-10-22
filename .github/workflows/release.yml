@@ -15,8 +15,13 @@ jobs:
     environment:
       name: axum-anyhow-release
     steps:
-      - uses: actions/checkout@v5.0.0
-      - uses: moonrepo/setup-rust@v1
+      - &checkout
+        uses: actions/checkout@v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - &install-rust
+        uses: moonrepo/setup-rust@v1
         with:
           components: clippy,rustfmt
       - uses: release-plz/action@v0.5.118
@@ -37,10 +42,8 @@ jobs:
       group: release-plz-${{ github.ref }}
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v5.0.0
-      - uses: moonrepo/setup-rust@v1
-        with:
-          components: clippy,rustfmt
+      - *checkout
+      - *install-rust
       - uses: release-plz/action@v0.5.118
         with:
           command: release-pr
