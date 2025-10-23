@@ -1,3 +1,4 @@
+use crate::hook::invoke_hook;
 use anyhow::Error;
 use axum::{
     http::StatusCode,
@@ -276,14 +277,16 @@ impl ApiErrorBuilder {
     /// assert_eq!(default_error.detail, "Something went wrong");
     /// ```
     pub fn build(self) -> ApiError {
-        ApiError {
+        let error = ApiError {
             status: self.status.unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             title: self.title.unwrap_or_else(|| "Internal Error".to_string()),
             detail: self
                 .detail
                 .unwrap_or_else(|| "Something went wrong".to_string()),
             error: self.error,
-        }
+        };
+        invoke_hook(&error);
+        error
     }
 }
 
