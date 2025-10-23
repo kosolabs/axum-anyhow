@@ -89,7 +89,10 @@ pub trait ResultExt<T> {
     fn context_internal(self, title: &str, detail: &str) -> ApiResult<T>;
 }
 
-impl<T> ResultExt<T> for Result<T> {
+impl<T, E> ResultExt<T> for Result<T, E>
+where
+    E: IntoApiError,
+{
     fn context_status(self, status: StatusCode, title: &str, detail: &str) -> ApiResult<T> {
         self.map_err(|err| err.context_status(status, title, detail))
     }
@@ -248,7 +251,7 @@ impl<T> OptionExt<T> for Option<T> {
 /// let error = anyhow!("Something went wrong");
 /// let api_error: ApiError = error.context_internal("Internal Error", "Database failed");
 /// ```
-pub trait IntoApiError<E> {
+pub trait IntoApiError {
     /// Converts an error to an `ApiError` with a custom status code.
     ///
     /// # Arguments
@@ -299,7 +302,7 @@ pub trait IntoApiError<E> {
     fn context_internal(self, title: &str, detail: &str) -> ApiError;
 }
 
-impl<E> IntoApiError<E> for E
+impl<E> IntoApiError for E
 where
     E: Into<anyhow::Error>,
 {
@@ -417,6 +420,18 @@ mod tests {
         assert_eq!(err.status, StatusCode::CONFLICT);
         assert_eq!(err.title, "Conflict");
         assert_eq!(err.detail, "Duplicate entry");
+    }
+
+    #[test]
+    fn test_result_ext_with_non_anyhow_error() {
+        let result = "not_a_number".parse::<i32>();
+        let api_result = result.context_bad_request("Bad Request", "Value must be a number");
+
+        assert!(api_result.is_err());
+        let err = api_result.unwrap_err();
+        assert_eq!(err.status, StatusCode::BAD_REQUEST);
+        assert_eq!(err.title, "Bad Request");
+        assert_eq!(err.detail, "Value must be a number");
     }
 
     #[test]
