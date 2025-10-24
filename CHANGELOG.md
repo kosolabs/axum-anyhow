@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0](https://github.com/kosolabs/axum-anyhow/compare/v0.3.2...v0.4.0) - 2025-10-24
+
+### Other
+
+- Fix unauthorized and forbidden function names ([#42](https://github.com/kosolabs/axum-anyhow/pull/42))
+- Support errors that can be coerced to an anyhow ([#41](https://github.com/kosolabs/axum-anyhow/pull/41))
+- Call user's callback when ApiErrors get built ([#39](https://github.com/kosolabs/axum-anyhow/pull/39))
+
 ## [0.3.2](https://github.com/kosolabs/axum-anyhow/compare/v0.3.1...v0.3.2) - 2025-10-22
 
 ### Other
