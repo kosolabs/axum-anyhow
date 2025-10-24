@@ -138,27 +138,27 @@ fn database_lookup(id: u32) -> Option<String> {
 
 The library provides helper methods for common HTTP status codes:
 
-| Method                    | Status Code | Use Case                 |
-| ------------------------- | ----------- | ------------------------ |
-| `context_bad_request`     | 400         | Invalid client input     |
-| `context_unauthenticated` | 401         | Authentication required  |
-| `context_unauthorized`    | 403         | Insufficient permissions |
-| `context_not_found`       | 404         | Resource doesn't exist   |
-| `context_internal`        | 500         | Server errors            |
-| `context_status`          | Custom      | Any custom status code   |
+| Method                 | Status Code | Use Case                 |
+| ---------------------- | ----------- | ------------------------ |
+| `context_bad_request`  | 400         | Invalid client input     |
+| `context_unauthorized` | 401         | Authentication required  |
+| `context_forbidden`    | 403         | Insufficient permissions |
+| `context_not_found`    | 404         | Resource doesn't exist   |
+| `context_internal`     | 500         | Server errors            |
+| `context_status`       | Custom      | Any custom status code   |
 
 ### Creating Errors Directly
 
 You can also create errors directly without Results or Options:
 
 ```rust
-use axum_anyhow::{bad_request, not_found, unauthorized, ApiError};
+use axum_anyhow::{bad_request, not_found, forbidden, ApiError};
 use axum::http::StatusCode;
 
 // Using helper functions for common status codes
 let error = bad_request("Invalid Input", "Name cannot be empty");
 let error = not_found("Not Found", "Resource does not exist");
-let error = unauthorized("Forbidden", "Insufficient permissions");
+let error = forbidden("Forbidden", "Insufficient permissions");
 
 // Using the builder for custom status codes
 let error = ApiError::builder()
