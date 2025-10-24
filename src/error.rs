@@ -67,6 +67,35 @@ impl ApiError {
     pub fn builder() -> ApiErrorBuilder {
         ApiErrorBuilder::default()
     }
+    /// Converts this `ApiError` into an `anyhow::Error`.
+    ///
+    /// If the `ApiError` contains an underlying error, it will be returned with
+    /// additional context from the title and detail. Otherwise, a new error is
+    /// created from the title and detail.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum::http::StatusCode;
+    /// use axum_anyhow::ApiError;
+    /// use anyhow::anyhow;
+    ///
+    /// let api_error = ApiError::builder()
+    ///     .status(StatusCode::INTERNAL_SERVER_ERROR)
+    ///     .title("Database Error")
+    ///     .detail("Failed to connect")
+    ///     .error(anyhow!("Connection timeout"))
+    ///     .build();
+    ///
+    /// let anyhow_error = api_error.into_error();
+    /// ```
+    pub fn into_error(self) -> Error {
+        if let Some(error) = self.error {
+            error.context(format!("{}: {}", self.title, self.detail))
+        } else {
+            anyhow::anyhow!("{}: {}", self.title, self.detail)
+        }
+    }
 }
 
 impl Default for ApiError {
@@ -477,5 +506,37 @@ mod tests {
         assert_eq!(json["status"], 404);
         assert_eq!(json["title"], "Not Found");
         assert_eq!(json["detail"], "Resource does not exist");
+    }
+
+    #[test]
+    fn test_into_error_with_underlying_error() {
+        let underlying = anyhow!("Connection timeout");
+        let api_error = ApiError::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .title("Database Error")
+            .detail("Failed to connect")
+            .error(underlying)
+            .build();
+
+        let anyhow_error = api_error.into_error();
+        let error_msg = format!("{:#}", anyhow_error);
+
+        // Should contain both the context and the underlying error
+        assert!(error_msg.contains("Database Error: Failed to connect"));
+        assert!(error_msg.contains("Connection timeout"));
+    }
+
+    #[test]
+    fn test_into_error_without_underlying_error() {
+        let api_error = ApiError::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .title("Validation Error")
+            .detail("Email is required")
+            .build();
+
+        let anyhow_error = api_error.into_error();
+        let error_msg = anyhow_error.to_string();
+
+        assert_eq!(error_msg, "Validation Error: Email is required");
     }
 }
