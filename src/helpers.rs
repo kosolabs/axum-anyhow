@@ -23,29 +23,7 @@ pub fn bad_request(title: &str, detail: &str) -> ApiError {
         .build()
 }
 
-/// Creates a 401 Unauthorized error (for authentication failures).
-///
-/// # Arguments
-///
-/// * `title` - A short, human-readable summary of the error
-/// * `detail` - A detailed explanation of the error
-///
-/// # Example
-///
-/// ```rust
-/// use axum_anyhow::unauthenticated;
-///
-/// let error = unauthenticated("Unauthenticated", "No valid authentication token provided");
-/// ```
-pub fn unauthenticated(title: &str, detail: &str) -> ApiError {
-    ApiError::builder()
-        .status(StatusCode::UNAUTHORIZED)
-        .title(title)
-        .detail(detail)
-        .build()
-}
-
-/// Creates a 403 Forbidden error (for authorization failures).
+/// Creates a 401 Unauthorized error (missing or invalid credentials).
 ///
 /// # Arguments
 ///
@@ -57,9 +35,31 @@ pub fn unauthenticated(title: &str, detail: &str) -> ApiError {
 /// ```rust
 /// use axum_anyhow::unauthorized;
 ///
-/// let error = unauthorized("Forbidden", "You do not have permission to access this resource");
+/// let error = unauthorized("Unauthorized", "No valid authentication token provided");
 /// ```
 pub fn unauthorized(title: &str, detail: &str) -> ApiError {
+    ApiError::builder()
+        .status(StatusCode::UNAUTHORIZED)
+        .title(title)
+        .detail(detail)
+        .build()
+}
+
+/// Creates a 403 Forbidden error (authenticated but lacks permissions).
+///
+/// # Arguments
+///
+/// * `title` - A short, human-readable summary of the error
+/// * `detail` - A detailed explanation of the error
+///
+/// # Example
+///
+/// ```rust
+/// use axum_anyhow::forbidden;
+///
+/// let error = forbidden("Forbidden", "You do not have permission to access this resource");
+/// ```
+pub fn forbidden(title: &str, detail: &str) -> ApiError {
     ApiError::builder()
         .status(StatusCode::FORBIDDEN)
         .title(title)
@@ -124,18 +124,18 @@ mod tests {
     }
 
     #[test]
-    fn test_unauthenticated_helper() {
-        let err = unauthenticated("Unauthenticated", "No token provided");
+    fn test_unauthorized_helper() {
+        let err = unauthorized("Unauthorized", "No token provided");
         assert_eq!(err.status, StatusCode::UNAUTHORIZED);
-        assert_eq!(err.title, "Unauthenticated");
+        assert_eq!(err.title, "Unauthorized");
         assert_eq!(err.detail, "No token provided");
     }
 
     #[test]
-    fn test_unauthorized_helper() {
-        let err = unauthorized("Unauthorized", "Insufficient permissions");
+    fn test_forbidden_helper() {
+        let err = forbidden("Forbidden", "Insufficient permissions");
         assert_eq!(err.status, StatusCode::FORBIDDEN);
-        assert_eq!(err.title, "Unauthorized");
+        assert_eq!(err.title, "Forbidden");
         assert_eq!(err.detail, "Insufficient permissions");
     }
 

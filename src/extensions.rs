@@ -56,21 +56,21 @@ pub trait ResultExt<T> {
     /// * `detail` - A detailed explanation of the error
     fn context_bad_request(self, title: &str, detail: &str) -> ApiResult<T>;
 
-    /// Converts an error to a 401 Unauthorized error (for authentication failures).
-    ///
-    /// # Arguments
-    ///
-    /// * `title` - A short, human-readable summary of the error
-    /// * `detail` - A detailed explanation of the error
-    fn context_unauthenticated(self, title: &str, detail: &str) -> ApiResult<T>;
-
-    /// Converts an error to a 403 Forbidden error (for authorization failures).
+    /// Converts an error to a 401 Unauthorized error (missing or invalid credentials).
     ///
     /// # Arguments
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
     fn context_unauthorized(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts an error to a 403 Forbidden error (authenticated but lacks permissions).
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    fn context_forbidden(self, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts an error to a 404 Not Found error.
     ///
@@ -101,12 +101,12 @@ where
         self.map_err(|err| err.context_bad_request(title, detail))
     }
 
-    fn context_unauthenticated(self, title: &str, detail: &str) -> ApiResult<T> {
-        self.map_err(|err| err.context_unauthenticated(title, detail))
-    }
-
     fn context_unauthorized(self, title: &str, detail: &str) -> ApiResult<T> {
         self.map_err(|err| err.context_unauthorized(title, detail))
+    }
+
+    fn context_forbidden(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.map_err(|err| err.context_forbidden(title, detail))
     }
 
     fn context_not_found(self, title: &str, detail: &str) -> ApiResult<T> {
@@ -171,21 +171,21 @@ pub trait OptionExt<T> {
     /// * `detail` - A detailed explanation of the error
     fn context_bad_request(self, title: &str, detail: &str) -> ApiResult<T>;
 
-    /// Converts `None` to a 401 Unauthorized error (for authentication failures).
-    ///
-    /// # Arguments
-    ///
-    /// * `title` - A short, human-readable summary of the error
-    /// * `detail` - A detailed explanation of the error
-    fn context_unauthenticated(self, title: &str, detail: &str) -> ApiResult<T>;
-
-    /// Converts `None` to a 403 Forbidden error (for authorization failures).
+    /// Converts `None` to a 401 Unauthorized error (missing or invalid credentials).
     ///
     /// # Arguments
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
     fn context_unauthorized(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts `None` to a 403 Forbidden error (authenticated but lacks permissions).
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    fn context_forbidden(self, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts `None` to a 404 Not Found error.
     ///
@@ -219,11 +219,11 @@ impl<T> OptionExt<T> for Option<T> {
         self.context_status(StatusCode::BAD_REQUEST, title, detail)
     }
 
-    fn context_unauthenticated(self, title: &str, detail: &str) -> ApiResult<T> {
+    fn context_unauthorized(self, title: &str, detail: &str) -> ApiResult<T> {
         self.context_status(StatusCode::UNAUTHORIZED, title, detail)
     }
 
-    fn context_unauthorized(self, title: &str, detail: &str) -> ApiResult<T> {
+    fn context_forbidden(self, title: &str, detail: &str) -> ApiResult<T> {
         self.context_status(StatusCode::FORBIDDEN, title, detail)
     }
 
@@ -269,21 +269,21 @@ pub trait IntoApiError {
     /// * `detail` - A detailed explanation of the error
     fn context_bad_request(self, title: &str, detail: &str) -> ApiError;
 
-    /// Converts an error to a 401 Unauthorized error (for authentication failures).
-    ///
-    /// # Arguments
-    ///
-    /// * `title` - A short, human-readable summary of the error
-    /// * `detail` - A detailed explanation of the error
-    fn context_unauthenticated(self, title: &str, detail: &str) -> ApiError;
-
-    /// Converts an error to a 403 Forbidden error (for authorization failures).
+    /// Converts an error to a 401 Unauthorized error (missing or invalid credentials).
     ///
     /// # Arguments
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
     fn context_unauthorized(self, title: &str, detail: &str) -> ApiError;
+
+    /// Converts an error to a 403 Forbidden error (authenticated but lacks permissions).
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    fn context_forbidden(self, title: &str, detail: &str) -> ApiError;
 
     /// Converts an error to a 404 Not Found error.
     ///
@@ -319,11 +319,11 @@ where
         self.context_status(StatusCode::BAD_REQUEST, title, detail)
     }
 
-    fn context_unauthenticated(self, title: &str, detail: &str) -> ApiError {
+    fn context_unauthorized(self, title: &str, detail: &str) -> ApiError {
         self.context_status(StatusCode::UNAUTHORIZED, title, detail)
     }
 
-    fn context_unauthorized(self, title: &str, detail: &str) -> ApiError {
+    fn context_forbidden(self, title: &str, detail: &str) -> ApiError {
         self.context_status(StatusCode::FORBIDDEN, title, detail)
     }
 
@@ -363,26 +363,26 @@ mod tests {
     }
 
     #[test]
-    fn test_result_ext_context_unauthenticated() {
+    fn test_result_ext_context_unauthorized() {
         let result: Result<String> = Err(anyhow!("Token missing"));
-        let api_result = result.context_unauthenticated("Unauthenticated", "No token");
+        let api_result = result.context_unauthorized("Unauthorized", "No token");
 
         assert!(api_result.is_err());
         let err = api_result.unwrap_err();
         assert_eq!(err.status, StatusCode::UNAUTHORIZED);
-        assert_eq!(err.title, "Unauthenticated");
+        assert_eq!(err.title, "Unauthorized");
         assert_eq!(err.detail, "No token");
     }
 
     #[test]
-    fn test_result_ext_context_unauthorized() {
+    fn test_result_ext_context_forbidden() {
         let result: Result<String> = Err(anyhow!("Permission denied"));
-        let api_result = result.context_unauthorized("Unauthorized", "Insufficient permissions");
+        let api_result = result.context_forbidden("Forbidden", "Insufficient permissions");
 
         assert!(api_result.is_err());
         let err = api_result.unwrap_err();
         assert_eq!(err.status, StatusCode::FORBIDDEN);
-        assert_eq!(err.title, "Unauthorized");
+        assert_eq!(err.title, "Forbidden");
         assert_eq!(err.detail, "Insufficient permissions");
     }
 
@@ -456,26 +456,26 @@ mod tests {
     }
 
     #[test]
-    fn test_option_ext_context_unauthenticated() {
+    fn test_option_ext_context_unauthorized() {
         let option: Option<String> = None;
-        let api_result = option.context_unauthenticated("Unauthenticated", "Token missing");
+        let api_result = option.context_unauthorized("Unauthorized", "Token missing");
 
         assert!(api_result.is_err());
         let err = api_result.unwrap_err();
         assert_eq!(err.status, StatusCode::UNAUTHORIZED);
-        assert_eq!(err.title, "Unauthenticated");
+        assert_eq!(err.title, "Unauthorized");
         assert_eq!(err.detail, "Token missing");
     }
 
     #[test]
-    fn test_option_ext_context_unauthorized() {
+    fn test_option_ext_context_forbidden() {
         let option: Option<String> = None;
-        let api_result = option.context_unauthorized("Unauthorized", "No access");
+        let api_result = option.context_forbidden("Forbidden", "No access");
 
         assert!(api_result.is_err());
         let err = api_result.unwrap_err();
         assert_eq!(err.status, StatusCode::FORBIDDEN);
-        assert_eq!(err.title, "Unauthorized");
+        assert_eq!(err.title, "Forbidden");
         assert_eq!(err.detail, "No access");
     }
 
