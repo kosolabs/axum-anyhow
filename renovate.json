@@ -1,6 +1,19 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
+  "extends": ["config:recommended", "group:all"],
+  "timezone": "America/Los_Angeles",
+  "schedule": ["before 10am on Monday"],
+  "rust": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["cargo"],
+      "groupName": "Rust dependencies"
+    },
+    {
+      "matchFiles": ["rust-toolchain.toml"],
+      "enabled": true
+    }
   ]
 }
