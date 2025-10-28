@@ -25,7 +25,7 @@ Add this to your `Cargo.toml`:
 [dependencies]
 anyhow = "1.0"
 axum = "0.8"
-axum-anyhow = "0.4"
+axum-anyhow = "0.6"
 serde = "1.0"
 tokio = { version = "1.48", features = ["full"] }
 ```
