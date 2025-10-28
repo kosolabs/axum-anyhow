@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0](https://github.com/kosolabs/axum-anyhow/compare/v0.5.0...v0.6.0) - 2025-10-28
+
+### Other
+
+- Bump version in README ([#52](https://github.com/kosolabs/axum-anyhow/pull/52))
+- Seal the traits so that adding methods isn't considered API breaking ([#50](https://github.com/kosolabs/axum-anyhow/pull/50))
+
 ## [0.5.0](https://github.com/kosolabs/axum-anyhow/compare/v0.4.2...v0.5.0) - 2025-10-28
 
 ### Other
