@@ -38,7 +38,38 @@ use axum::http::StatusCode;
 /// assert_eq!(err.detail, "Email must contain @");
 /// # })
 /// ```
-pub trait ResultExt<T> {
+///
+/// # Sealed Trait
+///
+/// This trait is sealed and cannot be implemented for types outside this crate.
+/// This is intentional to allow adding new methods in the future without breaking changes.
+///
+/// ```compile_fail
+/// use axum_anyhow::ResultExt;
+/// use axum::http::StatusCode;
+///
+/// struct MyError;
+///
+/// // This will not compile - trait is sealed
+/// impl<T> ResultExt<T> for Result<T, MyError> {
+///     fn context_status(self, status: StatusCode, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> {
+///         todo!()
+///     }
+///     fn context_bad_request(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_unauthorized(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_forbidden(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_not_found(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_method_not_allowed(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_conflict(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_unprocessable_entity(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_too_many_requests(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_internal(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_bad_gateway(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_service_unavailable(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_gateway_timeout(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+/// }
+/// ```
+pub trait ResultExt<T>: sealed::SealedResult {
     /// Converts an error to an `ApiError` with a custom status code.
     ///
     /// # Arguments
@@ -473,7 +504,38 @@ where
 /// assert_eq!(err.detail, "No user with that ID exists");
 /// # })
 /// ```
-pub trait OptionExt<T> {
+///
+/// # Sealed Trait
+///
+/// This trait is sealed and cannot be implemented for types outside this crate.
+/// This is intentional to allow adding new methods in the future without breaking changes.
+///
+/// ```compile_fail
+/// use axum_anyhow::OptionExt;
+/// use axum::http::StatusCode;
+///
+/// struct MyOption<T>(Option<T>);
+///
+/// // This will not compile - trait is sealed
+/// impl<T> OptionExt<T> for MyOption<T> {
+///     fn context_status(self, status: StatusCode, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> {
+///         todo!()
+///     }
+///     fn context_bad_request(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_unauthorized(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_forbidden(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_not_found(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_method_not_allowed(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_conflict(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_unprocessable_entity(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_too_many_requests(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_internal(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_bad_gateway(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_service_unavailable(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+///     fn context_gateway_timeout(self, title: &str, detail: &str) -> axum_anyhow::ApiResult<T> { todo!() }
+/// }
+/// ```
+pub trait OptionExt<T>: sealed::SealedOption {
     /// Converts `None` to an `ApiError` with a custom status code.
     ///
     /// # Arguments
@@ -869,7 +931,38 @@ impl<T> OptionExt<T> for Option<T> {
 /// let error = anyhow!("Something went wrong");
 /// let api_error: ApiError = error.context_internal("Internal Error", "Database failed");
 /// ```
-pub trait IntoApiError {
+///
+/// # Sealed Trait
+///
+/// This trait is sealed and cannot be implemented for types outside this crate.
+/// This is intentional to allow adding new methods in the future without breaking changes.
+///
+/// ```compile_fail
+/// use axum_anyhow::IntoApiError;
+/// use axum::http::StatusCode;
+///
+/// struct MyError;
+///
+/// // This will not compile - trait is sealed
+/// impl IntoApiError for MyError {
+///     fn context_status(self, status: StatusCode, title: &str, detail: &str) -> axum_anyhow::ApiError {
+///         todo!()
+///     }
+///     fn context_bad_request(self, title: &str, detail: &str) -> axum_anyhow::ApiError { todo!() }
+///     fn context_unauthorized(self, title: &str, detail: &str) -> axum_anyhow::ApiError { todo!() }
+///     fn context_forbidden(self, title: &str, detail: &str) -> axum_anyhow::ApiError { todo!() }
+///     fn context_not_found(self, title: &str, detail: &str) -> axum_anyhow::ApiError { todo!() }
+///     fn context_method_not_allowed(self, title: &str, detail: &str) -> axum_anyhow::ApiError { todo!() }
+///     fn context_conflict(self, title: &str, detail: &str) -> axum_anyhow::ApiError { todo!() }
+///     fn context_unprocessable_entity(self, title: &str, detail: &str) -> axum_anyhow::ApiError { todo!() }
+///     fn context_too_many_requests(self, title: &str, detail: &str) -> axum_anyhow::ApiError { todo!() }
+///     fn context_internal(self, title: &str, detail: &str) -> axum_anyhow::ApiError { todo!() }
+///     fn context_bad_gateway(self, title: &str, detail: &str) -> axum_anyhow::ApiError { todo!() }
+///     fn context_service_unavailable(self, title: &str, detail: &str) -> axum_anyhow::ApiError { todo!() }
+///     fn context_gateway_timeout(self, title: &str, detail: &str) -> axum_anyhow::ApiError { todo!() }
+/// }
+/// ```
+pub trait IntoApiError: sealed::SealedIntoApiError {
     /// Converts an error to an `ApiError` with a custom status code.
     ///
     /// # Arguments
@@ -1036,6 +1129,18 @@ where
     fn context_gateway_timeout(self, title: &str, detail: &str) -> ApiError {
         self.context_status(StatusCode::GATEWAY_TIMEOUT, title, detail)
     }
+}
+
+mod sealed {
+    use crate::IntoApiError;
+
+    pub trait SealedResult {}
+    pub trait SealedOption {}
+    pub trait SealedIntoApiError {}
+
+    impl<T, E> SealedResult for Result<T, E> where E: IntoApiError {}
+    impl<T> SealedOption for Option<T> {}
+    impl<E> SealedIntoApiError for E where E: Into<anyhow::Error> {}
 }
 
 #[cfg(test)]
