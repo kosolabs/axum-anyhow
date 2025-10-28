@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0](https://github.com/kosolabs/axum-anyhow/compare/v0.4.2...v0.5.0) - 2025-10-28
+
+### Other
+
+- Add additional helper functions and move unit tests to doc tests ([#49](https://github.com/kosolabs/axum-anyhow/pull/49))
+- Update README dependencies list in Installation instructions ([#47](https://github.com/kosolabs/axum-anyhow/pull/47))
+
 ## [0.4.2](https://github.com/kosolabs/axum-anyhow/compare/v0.4.1...v0.4.2) - 2025-10-24
 
 ### Other
