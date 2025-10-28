@@ -46,6 +46,26 @@ pub trait ResultExt<T> {
     /// * `status` - The HTTP status code to use
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use anyhow::{anyhow, Result};
+    /// use axum_anyhow::{ApiResult, ResultExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn make_tea() -> Result<String> {
+    ///     Err(anyhow!("I refuse to brew coffee"))
+    /// }
+    ///
+    /// let result: ApiResult<String> = make_tea()
+    ///     .context_status(StatusCode::IM_A_TEAPOT, "I'm a teapot", "This server is a teapot, not a coffee maker");
+    /// assert!(result.is_err());
+    /// let err = result.unwrap_err();
+    /// assert_eq!(err.status, StatusCode::IM_A_TEAPOT);
+    /// assert_eq!(err.title, "I'm a teapot");
+    /// assert_eq!(err.detail, "This server is a teapot, not a coffee maker");
+    /// ```
     fn context_status(self, status: StatusCode, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts an error to a 400 Bad Request error.
@@ -54,6 +74,24 @@ pub trait ResultExt<T> {
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use anyhow::{anyhow, Result};
+    /// use axum_anyhow::{ApiResult, ResultExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn parse_age(input: &str) -> Result<u32> {
+    ///     input.parse().map_err(|e| anyhow!("Parse error: {}", e))
+    /// }
+    ///
+    /// let result = parse_age("not a number")
+    ///     .context_bad_request("Invalid Input", "Age must be a valid number");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::BAD_REQUEST);
+    /// ```
     fn context_bad_request(self, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts an error to a 401 Unauthorized error (missing or invalid credentials).
@@ -62,6 +100,24 @@ pub trait ResultExt<T> {
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use anyhow::{anyhow, Result};
+    /// use axum_anyhow::{ApiResult, ResultExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn verify_token(token: Option<&str>) -> Result<String> {
+    ///     token.ok_or_else(|| anyhow!("Missing token")).map(String::from)
+    /// }
+    ///
+    /// let result = verify_token(None)
+    ///     .context_unauthorized("Unauthorized", "Valid authentication token required");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::UNAUTHORIZED);
+    /// ```
     fn context_unauthorized(self, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts an error to a 403 Forbidden error (authenticated but lacks permissions).
@@ -70,6 +126,24 @@ pub trait ResultExt<T> {
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use anyhow::{anyhow, Result};
+    /// use axum_anyhow::{ApiResult, ResultExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn check_admin(is_admin: bool) -> Result<()> {
+    ///     if is_admin { Ok(()) } else { Err(anyhow!("Not admin")) }
+    /// }
+    ///
+    /// let result = check_admin(false)
+    ///     .context_forbidden("Forbidden", "Admin access required");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::FORBIDDEN);
+    /// ```
     fn context_forbidden(self, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts an error to a 404 Not Found error.
@@ -78,7 +152,129 @@ pub trait ResultExt<T> {
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use anyhow::{anyhow, Result};
+    /// use axum_anyhow::{ApiResult, ResultExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn find_user(id: u32) -> Result<String> {
+    ///     Err(anyhow!("User {} not found", id))
+    /// }
+    ///
+    /// let result = find_user(123)
+    ///     .context_not_found("Not Found", "The requested user does not exist");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::NOT_FOUND);
+    /// ```
     fn context_not_found(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts an error to a 405 Method Not Allowed error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use anyhow::{anyhow, Result};
+    /// use axum_anyhow::{ApiResult, ResultExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn check_method(method: &str) -> Result<()> {
+    ///     if method == "GET" { Ok(()) } else { Err(anyhow!("Invalid method")) }
+    /// }
+    ///
+    /// let result = check_method("POST")
+    ///     .context_method_not_allowed("Method Not Allowed", "Only GET requests are supported");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::METHOD_NOT_ALLOWED);
+    /// ```
+    fn context_method_not_allowed(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts an error to a 409 Conflict error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use anyhow::{anyhow, Result};
+    /// use axum_anyhow::{ApiResult, ResultExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn create_user(email: &str) -> Result<()> {
+    ///     Err(anyhow!("Duplicate email"))
+    /// }
+    ///
+    /// let result = create_user("test@example.com")
+    ///     .context_conflict("Conflict", "A user with this email already exists");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::CONFLICT);
+    /// ```
+    fn context_conflict(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts an error to a 422 Unprocessable Entity error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use anyhow::{anyhow, Result};
+    /// use axum_anyhow::{ApiResult, ResultExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn validate_password(password: &str) -> Result<()> {
+    ///     if password.len() >= 8 { Ok(()) } else { Err(anyhow!("Too short")) }
+    /// }
+    ///
+    /// let result = validate_password("123")
+    ///     .context_unprocessable_entity("Validation Failed", "Password must be at least 8 characters");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::UNPROCESSABLE_ENTITY);
+    /// ```
+    fn context_unprocessable_entity(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts an error to a 429 Too Many Requests error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use anyhow::{anyhow, Result};
+    /// use axum_anyhow::{ApiResult, ResultExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn check_rate_limit(count: u32) -> Result<()> {
+    ///     if count < 100 { Ok(()) } else { Err(anyhow!("Rate limit exceeded")) }
+    /// }
+    ///
+    /// let result = check_rate_limit(150)
+    ///     .context_too_many_requests("Too Many Requests", "Rate limit exceeded. Please try again later");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::TOO_MANY_REQUESTS);
+    /// ```
+    fn context_too_many_requests(self, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts an error to a 500 Internal Server Error.
     ///
@@ -86,7 +282,103 @@ pub trait ResultExt<T> {
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use anyhow::{anyhow, Result};
+    /// use axum_anyhow::{ApiResult, ResultExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn connect_db() -> Result<()> {
+    ///     Err(anyhow!("Connection failed"))
+    /// }
+    ///
+    /// let result = connect_db()
+    ///     .context_internal("Internal Error", "Database connection failed");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::INTERNAL_SERVER_ERROR);
+    /// ```
     fn context_internal(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts an error to a 502 Bad Gateway error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use anyhow::{anyhow, Result};
+    /// use axum_anyhow::{ApiResult, ResultExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn call_upstream() -> Result<String> {
+    ///     Err(anyhow!("Upstream error"))
+    /// }
+    ///
+    /// let result = call_upstream()
+    ///     .context_bad_gateway("Bad Gateway", "Upstream service returned an invalid response");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::BAD_GATEWAY);
+    /// ```
+    fn context_bad_gateway(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts an error to a 503 Service Unavailable error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use anyhow::{anyhow, Result};
+    /// use axum_anyhow::{ApiResult, ResultExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn check_service() -> Result<()> {
+    ///     Err(anyhow!("Service down"))
+    /// }
+    ///
+    /// let result = check_service()
+    ///     .context_service_unavailable("Service Unavailable", "Service is currently under maintenance");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::SERVICE_UNAVAILABLE);
+    /// ```
+    fn context_service_unavailable(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts an error to a 504 Gateway Timeout error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use anyhow::{anyhow, Result};
+    /// use axum_anyhow::{ApiResult, ResultExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn call_slow_service() -> Result<String> {
+    ///     Err(anyhow!("Timeout"))
+    /// }
+    ///
+    /// let result = call_slow_service()
+    ///     .context_gateway_timeout("Gateway Timeout", "Upstream service did not respond in time");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::GATEWAY_TIMEOUT);
+    /// ```
+    fn context_gateway_timeout(self, title: &str, detail: &str) -> ApiResult<T>;
 }
 
 impl<T, E> ResultExt<T> for Result<T, E>
@@ -113,8 +405,36 @@ where
         self.map_err(|err| err.context_not_found(title, detail))
     }
 
+    fn context_method_not_allowed(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.map_err(|err| err.context_method_not_allowed(title, detail))
+    }
+
+    fn context_conflict(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.map_err(|err| err.context_conflict(title, detail))
+    }
+
+    fn context_unprocessable_entity(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.map_err(|err| err.context_unprocessable_entity(title, detail))
+    }
+
+    fn context_too_many_requests(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.map_err(|err| err.context_too_many_requests(title, detail))
+    }
+
     fn context_internal(self, title: &str, detail: &str) -> ApiResult<T> {
         self.map_err(|err| err.context_internal(title, detail))
+    }
+
+    fn context_bad_gateway(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.map_err(|err| err.context_bad_gateway(title, detail))
+    }
+
+    fn context_service_unavailable(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.map_err(|err| err.context_service_unavailable(title, detail))
+    }
+
+    fn context_gateway_timeout(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.map_err(|err| err.context_gateway_timeout(title, detail))
     }
 }
 
@@ -161,6 +481,25 @@ pub trait OptionExt<T> {
     /// * `status` - The HTTP status code to use
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum_anyhow::{ApiResult, OptionExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn get_coffee() -> Option<String> {
+    ///     None  // No coffee available
+    /// }
+    ///
+    /// let result: ApiResult<String> = get_coffee()
+    ///     .context_status(StatusCode::IM_A_TEAPOT, "I'm a teapot", "Cannot brew coffee with a teapot");
+    /// assert!(result.is_err());
+    /// let err = result.unwrap_err();
+    /// assert_eq!(err.status, StatusCode::IM_A_TEAPOT);
+    /// assert_eq!(err.title, "I'm a teapot");
+    /// assert_eq!(err.detail, "Cannot brew coffee with a teapot");
+    /// ```
     fn context_status(self, status: StatusCode, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts `None` to a 400 Bad Request error.
@@ -169,6 +508,24 @@ pub trait OptionExt<T> {
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum_anyhow::{ApiResult, OptionExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn get_query_param(params: &[(&str, &str)], key: &str) -> Option<String> {
+    ///     params.iter().find(|(k, _)| *k == key).map(|(_, v)| v.to_string())
+    /// }
+    ///
+    /// let params = vec![("name", "Alice")];
+    /// let result = get_query_param(&params, "age")
+    ///     .context_bad_request("Missing Parameter", "Required parameter 'age' is missing");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::BAD_REQUEST);
+    /// ```
     fn context_bad_request(self, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts `None` to a 401 Unauthorized error (missing or invalid credentials).
@@ -177,6 +534,24 @@ pub trait OptionExt<T> {
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum_anyhow::{ApiResult, OptionExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn get_auth_token(headers: &[(&str, &str)]) -> Option<String> {
+    ///     headers.iter().find(|(k, _)| *k == "Authorization").map(|(_, v)| v.to_string())
+    /// }
+    ///
+    /// let headers = vec![("Content-Type", "application/json")];
+    /// let result = get_auth_token(&headers)
+    ///     .context_unauthorized("Unauthorized", "Authentication token is required");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::UNAUTHORIZED);
+    /// ```
     fn context_unauthorized(self, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts `None` to a 403 Forbidden error (authenticated but lacks permissions).
@@ -185,6 +560,23 @@ pub trait OptionExt<T> {
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum_anyhow::{ApiResult, OptionExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn get_admin_privilege(user_id: u32) -> Option<bool> {
+    ///     if user_id == 1 { Some(true) } else { None }
+    /// }
+    ///
+    /// let result = get_admin_privilege(42)
+    ///     .context_forbidden("Forbidden", "Admin privileges required to access this resource");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::FORBIDDEN);
+    /// ```
     fn context_forbidden(self, title: &str, detail: &str) -> ApiResult<T>;
 
     /// Converts `None` to a 404 Not Found error.
@@ -195,13 +587,211 @@ pub trait OptionExt<T> {
     /// * `detail` - A detailed explanation of the error
     fn context_not_found(self, title: &str, detail: &str) -> ApiResult<T>;
 
+    /// Converts `None` to a 405 Method Not Allowed error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum_anyhow::{ApiResult, OptionExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn get_allowed_method(method: &str) -> Option<String> {
+    ///     if method == "GET" { Some(method.to_string()) } else { None }
+    /// }
+    ///
+    /// let result = get_allowed_method("POST")
+    ///     .context_method_not_allowed("Method Not Allowed", "This endpoint only supports GET requests");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::METHOD_NOT_ALLOWED);
+    /// ```
+    fn context_method_not_allowed(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts `None` to a 409 Conflict error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum_anyhow::{ApiResult, OptionExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn try_reserve_username(username: &str) -> Option<String> {
+    ///     // Returns None if username already taken
+    ///     None
+    /// }
+    ///
+    /// let result = try_reserve_username("admin")
+    ///     .context_conflict("Conflict", "Username is already taken");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::CONFLICT);
+    /// ```
+    fn context_conflict(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts `None` to a 422 Unprocessable Entity error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum_anyhow::{ApiResult, OptionExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn validate_email_format(email: &str) -> Option<String> {
+    ///     if email.contains('@') { Some(email.to_string()) } else { None }
+    /// }
+    ///
+    /// let result = validate_email_format("invalid-email")
+    ///     .context_unprocessable_entity("Validation Failed", "Email must contain an @ symbol");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::UNPROCESSABLE_ENTITY);
+    /// ```
+    fn context_unprocessable_entity(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts `None` to a 429 Too Many Requests error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum_anyhow::{ApiResult, OptionExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn check_rate_limit_quota(user_id: u32) -> Option<u32> {
+    ///     // Returns remaining quota or None if exceeded
+    ///     None
+    /// }
+    ///
+    /// let result = check_rate_limit_quota(123)
+    ///     .context_too_many_requests("Too Many Requests", "API rate limit exceeded. Please try again later");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::TOO_MANY_REQUESTS);
+    /// ```
+    fn context_too_many_requests(self, title: &str, detail: &str) -> ApiResult<T>;
+
     /// Converts `None` to a 500 Internal Server Error.
     ///
     /// # Arguments
     ///
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum_anyhow::{ApiResult, OptionExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn get_config_value(key: &str) -> Option<String> {
+    ///     // Returns None if critical config is missing
+    ///     None
+    /// }
+    ///
+    /// let result = get_config_value("database_url")
+    ///     .context_internal("Internal Error", "Critical configuration missing");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::INTERNAL_SERVER_ERROR);
+    /// ```
     fn context_internal(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts `None` to a 502 Bad Gateway error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum_anyhow::{ApiResult, OptionExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn parse_upstream_response(response: &str) -> Option<String> {
+    ///     // Returns None if response is invalid
+    ///     None
+    /// }
+    ///
+    /// let result = parse_upstream_response("invalid")
+    ///     .context_bad_gateway("Bad Gateway", "Upstream service returned invalid response");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::BAD_GATEWAY);
+    /// ```
+    fn context_bad_gateway(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts `None` to a 503 Service Unavailable error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum_anyhow::{ApiResult, OptionExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn get_service_status() -> Option<bool> {
+    ///     // Returns None if service is unavailable
+    ///     None
+    /// }
+    ///
+    /// let result = get_service_status()
+    ///     .context_service_unavailable("Service Unavailable", "Service is temporarily down for maintenance");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::SERVICE_UNAVAILABLE);
+    /// ```
+    fn context_service_unavailable(self, title: &str, detail: &str) -> ApiResult<T>;
+
+    /// Converts `None` to a 504 Gateway Timeout error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum_anyhow::{ApiResult, OptionExt};
+    /// use axum::http::StatusCode;
+    ///
+    /// fn wait_for_upstream_response(timeout_ms: u64) -> Option<String> {
+    ///     // Returns None if timeout exceeded
+    ///     None
+    /// }
+    ///
+    /// let result = wait_for_upstream_response(5000)
+    ///     .context_gateway_timeout("Gateway Timeout", "Upstream service did not respond within timeout");
+    ///
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().status, StatusCode::GATEWAY_TIMEOUT);
+    /// ```
+    fn context_gateway_timeout(self, title: &str, detail: &str) -> ApiResult<T>;
 }
 
 impl<T> OptionExt<T> for Option<T> {
@@ -231,8 +821,36 @@ impl<T> OptionExt<T> for Option<T> {
         self.context_status(StatusCode::NOT_FOUND, title, detail)
     }
 
+    fn context_method_not_allowed(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.context_status(StatusCode::METHOD_NOT_ALLOWED, title, detail)
+    }
+
+    fn context_conflict(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.context_status(StatusCode::CONFLICT, title, detail)
+    }
+
+    fn context_unprocessable_entity(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.context_status(StatusCode::UNPROCESSABLE_ENTITY, title, detail)
+    }
+
+    fn context_too_many_requests(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.context_status(StatusCode::TOO_MANY_REQUESTS, title, detail)
+    }
+
     fn context_internal(self, title: &str, detail: &str) -> ApiResult<T> {
         self.context_status(StatusCode::INTERNAL_SERVER_ERROR, title, detail)
+    }
+
+    fn context_bad_gateway(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.context_status(StatusCode::BAD_GATEWAY, title, detail)
+    }
+
+    fn context_service_unavailable(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.context_status(StatusCode::SERVICE_UNAVAILABLE, title, detail)
+    }
+
+    fn context_gateway_timeout(self, title: &str, detail: &str) -> ApiResult<T> {
+        self.context_status(StatusCode::GATEWAY_TIMEOUT, title, detail)
     }
 }
 
@@ -293,6 +911,38 @@ pub trait IntoApiError {
     /// * `detail` - A detailed explanation of the error
     fn context_not_found(self, title: &str, detail: &str) -> ApiError;
 
+    /// Converts an error to a 405 Method Not Allowed error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    fn context_method_not_allowed(self, title: &str, detail: &str) -> ApiError;
+
+    /// Converts an error to a 409 Conflict error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    fn context_conflict(self, title: &str, detail: &str) -> ApiError;
+
+    /// Converts an error to a 422 Unprocessable Entity error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    fn context_unprocessable_entity(self, title: &str, detail: &str) -> ApiError;
+
+    /// Converts an error to a 429 Too Many Requests error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    fn context_too_many_requests(self, title: &str, detail: &str) -> ApiError;
+
     /// Converts an error to a 500 Internal Server Error.
     ///
     /// # Arguments
@@ -300,6 +950,30 @@ pub trait IntoApiError {
     /// * `title` - A short, human-readable summary of the error
     /// * `detail` - A detailed explanation of the error
     fn context_internal(self, title: &str, detail: &str) -> ApiError;
+
+    /// Converts an error to a 502 Bad Gateway error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    fn context_bad_gateway(self, title: &str, detail: &str) -> ApiError;
+
+    /// Converts an error to a 503 Service Unavailable error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    fn context_service_unavailable(self, title: &str, detail: &str) -> ApiError;
+
+    /// Converts an error to a 504 Gateway Timeout error.
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - A short, human-readable summary of the error
+    /// * `detail` - A detailed explanation of the error
+    fn context_gateway_timeout(self, title: &str, detail: &str) -> ApiError;
 }
 
 impl<E> IntoApiError for E
@@ -331,8 +1005,36 @@ where
         self.context_status(StatusCode::NOT_FOUND, title, detail)
     }
 
+    fn context_method_not_allowed(self, title: &str, detail: &str) -> ApiError {
+        self.context_status(StatusCode::METHOD_NOT_ALLOWED, title, detail)
+    }
+
+    fn context_conflict(self, title: &str, detail: &str) -> ApiError {
+        self.context_status(StatusCode::CONFLICT, title, detail)
+    }
+
+    fn context_unprocessable_entity(self, title: &str, detail: &str) -> ApiError {
+        self.context_status(StatusCode::UNPROCESSABLE_ENTITY, title, detail)
+    }
+
+    fn context_too_many_requests(self, title: &str, detail: &str) -> ApiError {
+        self.context_status(StatusCode::TOO_MANY_REQUESTS, title, detail)
+    }
+
     fn context_internal(self, title: &str, detail: &str) -> ApiError {
         self.context_status(StatusCode::INTERNAL_SERVER_ERROR, title, detail)
+    }
+
+    fn context_bad_gateway(self, title: &str, detail: &str) -> ApiError {
+        self.context_status(StatusCode::BAD_GATEWAY, title, detail)
+    }
+
+    fn context_service_unavailable(self, title: &str, detail: &str) -> ApiError {
+        self.context_status(StatusCode::SERVICE_UNAVAILABLE, title, detail)
+    }
+
+    fn context_gateway_timeout(self, title: &str, detail: &str) -> ApiError {
+        self.context_status(StatusCode::GATEWAY_TIMEOUT, title, detail)
     }
 }
 
@@ -360,66 +1062,6 @@ mod tests {
 
         assert!(api_result.is_ok());
         assert_eq!(api_result.unwrap(), 42);
-    }
-
-    #[test]
-    fn test_result_ext_context_unauthorized() {
-        let result: Result<String> = Err(anyhow!("Token missing"));
-        let api_result = result.context_unauthorized("Unauthorized", "No token");
-
-        assert!(api_result.is_err());
-        let err = api_result.unwrap_err();
-        assert_eq!(err.status, StatusCode::UNAUTHORIZED);
-        assert_eq!(err.title, "Unauthorized");
-        assert_eq!(err.detail, "No token");
-    }
-
-    #[test]
-    fn test_result_ext_context_forbidden() {
-        let result: Result<String> = Err(anyhow!("Permission denied"));
-        let api_result = result.context_forbidden("Forbidden", "Insufficient permissions");
-
-        assert!(api_result.is_err());
-        let err = api_result.unwrap_err();
-        assert_eq!(err.status, StatusCode::FORBIDDEN);
-        assert_eq!(err.title, "Forbidden");
-        assert_eq!(err.detail, "Insufficient permissions");
-    }
-
-    #[test]
-    fn test_result_ext_context_not_found() {
-        let result: Result<String> = Err(anyhow!("Resource missing"));
-        let api_result = result.context_not_found("Not Found", "User not found");
-
-        assert!(api_result.is_err());
-        let err = api_result.unwrap_err();
-        assert_eq!(err.status, StatusCode::NOT_FOUND);
-        assert_eq!(err.title, "Not Found");
-        assert_eq!(err.detail, "User not found");
-    }
-
-    #[test]
-    fn test_result_ext_context_internal() {
-        let result: Result<String> = Err(anyhow!("Database error"));
-        let api_result = result.context_internal("Internal Error", "Database failed");
-
-        assert!(api_result.is_err());
-        let err = api_result.unwrap_err();
-        assert_eq!(err.status, StatusCode::INTERNAL_SERVER_ERROR);
-        assert_eq!(err.title, "Internal Error");
-        assert_eq!(err.detail, "Database failed");
-    }
-
-    #[test]
-    fn test_result_ext_context_status() {
-        let result: Result<String> = Err(anyhow!("Custom error"));
-        let api_result = result.context_status(StatusCode::CONFLICT, "Conflict", "Duplicate entry");
-
-        assert!(api_result.is_err());
-        let err = api_result.unwrap_err();
-        assert_eq!(err.status, StatusCode::CONFLICT);
-        assert_eq!(err.title, "Conflict");
-        assert_eq!(err.detail, "Duplicate entry");
     }
 
     #[test]
@@ -456,63 +1098,13 @@ mod tests {
     }
 
     #[test]
-    fn test_option_ext_context_unauthorized() {
-        let option: Option<String> = None;
-        let api_result = option.context_unauthorized("Unauthorized", "Token missing");
+    fn test_into_api_error_context_status() {
+        let anyhow_err = anyhow!("Custom error");
+        let api_err = anyhow_err.context_status(StatusCode::IM_A_TEAPOT, "Teapot", "I'm a teapot");
 
-        assert!(api_result.is_err());
-        let err = api_result.unwrap_err();
-        assert_eq!(err.status, StatusCode::UNAUTHORIZED);
-        assert_eq!(err.title, "Unauthorized");
-        assert_eq!(err.detail, "Token missing");
-    }
-
-    #[test]
-    fn test_option_ext_context_forbidden() {
-        let option: Option<String> = None;
-        let api_result = option.context_forbidden("Forbidden", "No access");
-
-        assert!(api_result.is_err());
-        let err = api_result.unwrap_err();
-        assert_eq!(err.status, StatusCode::FORBIDDEN);
-        assert_eq!(err.title, "Forbidden");
-        assert_eq!(err.detail, "No access");
-    }
-
-    #[test]
-    fn test_option_ext_context_not_found() {
-        let option: Option<String> = None;
-        let api_result = option.context_not_found("Not Found", "Resource missing");
-
-        assert!(api_result.is_err());
-        let err = api_result.unwrap_err();
-        assert_eq!(err.status, StatusCode::NOT_FOUND);
-        assert_eq!(err.title, "Not Found");
-        assert_eq!(err.detail, "Resource missing");
-    }
-
-    #[test]
-    fn test_option_ext_context_internal() {
-        let option: Option<String> = None;
-        let api_result = option.context_internal("Internal Error", "Config missing");
-
-        assert!(api_result.is_err());
-        let err = api_result.unwrap_err();
-        assert_eq!(err.status, StatusCode::INTERNAL_SERVER_ERROR);
-        assert_eq!(err.title, "Internal Error");
-        assert_eq!(err.detail, "Config missing");
-    }
-
-    #[test]
-    fn test_option_ext_context_status() {
-        let option: Option<String> = None;
-        let api_result = option.context_status(StatusCode::CONFLICT, "Conflict", "Already exists");
-
-        assert!(api_result.is_err());
-        let err = api_result.unwrap_err();
-        assert_eq!(err.status, StatusCode::CONFLICT);
-        assert_eq!(err.title, "Conflict");
-        assert_eq!(err.detail, "Already exists");
+        assert_eq!(api_err.status, StatusCode::IM_A_TEAPOT);
+        assert_eq!(api_err.title, "Teapot");
+        assert_eq!(api_err.detail, "I'm a teapot");
     }
 
     #[test]
