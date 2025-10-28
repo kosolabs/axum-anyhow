@@ -7,7 +7,11 @@ mod hook;
 
 pub use error::{ApiError, ApiErrorBuilder};
 pub use extensions::{IntoApiError, OptionExt, ResultExt};
-pub use helpers::{bad_request, forbidden, internal_error, not_found, unauthorized};
+pub use helpers::{
+    bad_gateway, bad_request, conflict, forbidden, gateway_timeout, internal_error,
+    method_not_allowed, not_found, service_unavailable, too_many_requests, unauthorized,
+    unprocessable_entity,
+};
 pub use hook::set_error_hook;
 
 use anyhow::Result;
