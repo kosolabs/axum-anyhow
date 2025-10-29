@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2](https://github.com/kosolabs/axum-anyhow/compare/v0.6.1...v0.6.2) - 2025-10-29
+
+### Other
+
+- Add feature to expose error details directly in ApiError ([#56](https://github.com/kosolabs/axum-anyhow/pull/56))
+
 ## [0.6.1](https://github.com/kosolabs/axum-anyhow/compare/v0.6.0...v0.6.1) - 2025-10-29
 
 ### Other
