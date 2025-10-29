@@ -18,6 +18,6 @@ jobs:
         with:
           components: clippy,rustfmt
       - run: cargo test --verbose
-      - run: cargo test --doc --verbose
+      - run: cargo test --features expose-error-details --verbose
       - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo fmt --all -- --check

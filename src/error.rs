@@ -136,7 +136,12 @@ where
     E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
-        ApiError::builder().error(err).build()
+        let error = err.into();
+        let mut builder = ApiError::builder();
+        if cfg!(feature = "expose-error-details") {
+            builder = builder.detail(error.to_string());
+        }
+        builder.error(error).build()
     }
 }
 
@@ -457,7 +462,13 @@ mod tests {
 
         assert_eq!(api_err.status, StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(api_err.title, "Internal Error");
+
+        #[cfg(feature = "expose-error-details")]
+        assert_eq!(api_err.detail, "Some error occurred");
+
+        #[cfg(not(feature = "expose-error-details"))]
         assert_eq!(api_err.detail, "Something went wrong");
+
         assert!(api_err.error.is_some());
     }
 
@@ -538,5 +549,29 @@ mod tests {
         let error_msg = anyhow_error.to_string();
 
         assert_eq!(error_msg, "Validation Error: Email is required");
+    }
+
+    #[test]
+    #[cfg(feature = "expose-error-details")]
+    fn test_expose_error_details_feature_enabled() {
+        let anyhow_err = anyhow!("Database connection failed");
+        let api_err: ApiError = anyhow_err.into();
+
+        assert_eq!(api_err.status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(api_err.title, "Internal Error");
+        assert_eq!(api_err.detail, "Database connection failed");
+        assert!(api_err.error.is_some());
+    }
+
+    #[test]
+    #[cfg(not(feature = "expose-error-details"))]
+    fn test_expose_error_details_feature_disabled() {
+        let anyhow_err = anyhow!("Database connection failed");
+        let api_err: ApiError = anyhow_err.into();
+
+        assert_eq!(api_err.status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(api_err.title, "Internal Error");
+        assert_eq!(api_err.detail, "Something went wrong");
+        assert!(api_err.error.is_some());
     }
 }

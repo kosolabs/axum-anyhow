@@ -16,6 +16,7 @@ This crate provides extension traits and utilities to easily convert `Result` an
 - Convert `anyhow::Result` to an `ApiError` with custom HTTP status codes.
 - Convert `Option` to an `ApiError` when `None` is encountered.
 - Returns JSON responses in [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html) format.
+- Optional feature to expose error details in development mode.
 
 ## Installation
 
@@ -203,6 +204,43 @@ All errors are serialized as JSON with the following structure:
   "title": "Not Found",
   "detail": "The requested user does not exist"
 }
+```
+
+## Development Features
+
+### Exposing Error Details
+
+By default, when an `anyhow::Error` is automatically converted to an `ApiError` (via the `From` trait), the error detail is set to the generic message `"Something went wrong"`. This protects against accidentally leaking sensitive information in production.
+
+However, during development, it can be helpful to see the actual error messages, especially if you log the error response in the browser's console. You can enable the `expose-error-details` feature to include the error message in the detail field:
+
+```toml
+[dependencies]
+axum-anyhow = { version = "0.6", features = ["expose-error-details"] }
+```
+
+With this feature enabled:
+
+```rust
+use anyhow::anyhow;
+use axum_anyhow::ApiError;
+
+// Without feature: detail = "Something went wrong"
+// With feature: detail = "Database connection failed"
+let error: ApiError = anyhow!("Database connection failed").into();
+```
+
+> [!WARNING]
+> Error messages may contain sensitive information like file paths, database details, or internal system information that should not be exposed to end users in production.
+
+**Best Practice**: Use different dependency configurations for development and production:
+
+```toml
+[dependencies]
+axum-anyhow = "0.6"
+
+[dev-dependencies]
+axum-anyhow = { version = "0.6", features = ["expose-error-details"] }
 ```
 
 ## Motivation
