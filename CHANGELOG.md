@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0](https://github.com/kosolabs/axum-anyhow/compare/v0.6.2...v0.7.0) - 2025-11-01
+
+### Other
+
+- Use environment variable instead of feature flag to expose error details ([#58](https://github.com/kosolabs/axum-anyhow/pull/58))
+
 ## [0.6.2](https://github.com/kosolabs/axum-anyhow/compare/v0.6.1...v0.6.2) - 2025-10-29
 
 ### Other
