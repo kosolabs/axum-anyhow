@@ -131,16 +131,26 @@ impl Default for ApiError {
 ///
 /// By default, all errors are converted to 500 Internal Server Error responses.
 /// Use the extension traits to specify different status codes.
+///
+/// Set the `AXUM_ANYHOW_EXPOSE_ERRORS` environment variable to expose the actual
+/// error message in the detail field (useful for development).
 impl<E> From<E> for ApiError
 where
     E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
         let error = err.into();
-        let mut builder = ApiError::builder();
-        if cfg!(feature = "expose-error-details") {
-            builder = builder.detail(error.to_string());
-        }
+        let builder = ApiError::builder();
+
+        let builder = if std::env::var("AXUM_ANYHOW_EXPOSE_ERRORS")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false)
+        {
+            builder.detail(error.to_string())
+        } else {
+            builder
+        };
+
         builder.error(error).build()
     }
 }
@@ -457,18 +467,15 @@ mod tests {
 
     #[test]
     fn test_anyhow_error_coerced_to_api_error_has_defaults() {
+        // Ensure the env var is not set for this test
+        std::env::remove_var("AXUM_ANYHOW_EXPOSE_ERRORS");
+
         let anyhow_err = anyhow!("Some error occurred");
         let api_err: ApiError = anyhow_err.into();
 
         assert_eq!(api_err.status, StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(api_err.title, "Internal Error");
-
-        #[cfg(feature = "expose-error-details")]
-        assert_eq!(api_err.detail, "Some error occurred");
-
-        #[cfg(not(feature = "expose-error-details"))]
         assert_eq!(api_err.detail, "Something went wrong");
-
         assert!(api_err.error.is_some());
     }
 
@@ -552,8 +559,9 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "expose-error-details")]
-    fn test_expose_error_details_feature_enabled() {
+    fn test_expose_error_details_enabled() {
+        std::env::set_var("AXUM_ANYHOW_EXPOSE_ERRORS", "1");
+
         let anyhow_err = anyhow!("Database connection failed");
         let api_err: ApiError = anyhow_err.into();
 
@@ -561,11 +569,14 @@ mod tests {
         assert_eq!(api_err.title, "Internal Error");
         assert_eq!(api_err.detail, "Database connection failed");
         assert!(api_err.error.is_some());
+
+        std::env::remove_var("AXUM_ANYHOW_EXPOSE_ERRORS");
     }
 
     #[test]
-    #[cfg(not(feature = "expose-error-details"))]
-    fn test_expose_error_details_feature_disabled() {
+    fn test_expose_error_details_disabled() {
+        std::env::remove_var("AXUM_ANYHOW_EXPOSE_ERRORS");
+
         let anyhow_err = anyhow!("Database connection failed");
         let api_err: ApiError = anyhow_err.into();
 
@@ -573,5 +584,17 @@ mod tests {
         assert_eq!(api_err.title, "Internal Error");
         assert_eq!(api_err.detail, "Something went wrong");
         assert!(api_err.error.is_some());
+    }
+
+    #[test]
+    fn test_expose_error_details_with_true() {
+        std::env::set_var("AXUM_ANYHOW_EXPOSE_ERRORS", "true");
+
+        let anyhow_err = anyhow!("Connection timeout");
+        let api_err: ApiError = anyhow_err.into();
+
+        assert_eq!(api_err.detail, "Connection timeout");
+
+        std::env::remove_var("AXUM_ANYHOW_EXPOSE_ERRORS");
     }
 }
