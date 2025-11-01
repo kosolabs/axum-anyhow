@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2](https://github.com/kosolabs/axum-anyhow/compare/v0.7.1...v0.7.2) - 2025-11-01
+
+### Other
+
+- *(config)* migrate renovate config ([#64](https://github.com/kosolabs/axum-anyhow/pull/64))
+- Use a mutable builder to make code nicer ([#62](https://github.com/kosolabs/axum-anyhow/pull/62))
+
 ## [0.7.1](https://github.com/kosolabs/axum-anyhow/compare/v0.7.0...v0.7.1) - 2025-11-01
 
 ### Other
