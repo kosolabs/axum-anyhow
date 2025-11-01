@@ -140,17 +140,14 @@ where
 {
     fn from(err: E) -> Self {
         let error = err.into();
-        let builder = ApiError::builder();
-
-        let builder = if std::env::var("AXUM_ANYHOW_EXPOSE_ERRORS")
+        let should_expose = std::env::var("AXUM_ANYHOW_EXPOSE_ERRORS")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(false)
-        {
-            builder.detail(error.to_string())
-        } else {
-            builder
-        };
+            .unwrap_or(false);
 
+        let mut builder = ApiError::builder();
+        if should_expose {
+            builder = builder.detail(error.to_string());
+        }
         builder.error(error).build()
     }
 }
