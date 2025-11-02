@@ -8,7 +8,6 @@
   "schedule": [
     "before 10am on Monday"
   ],
-  "pinDigests": true,
   "customManagers": [
     {
       "description": "Update Rust stable version in rust-toolchain.toml",
