@@ -8,24 +8,24 @@
   "schedule": [
     "before 10am on Monday"
   ],
-  "packageRules": [
+  "customManagers": [
     {
-      "matchCategories": [
-        "rust"
+      "description": "Update Rust stable version in rust-toolchain.toml",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)rust-toolchain\\.toml?$/"],
+      "matchStrings": [
+        "channel\\s*=\\s*\"(?<currentValue>\\d+\\.\\d+(\\.\\d+)?)\""
       ],
-      "enabled": true
+      "depNameTemplate": "rust",
+      "packageNameTemplate": "rust-lang/rust",
+      "datasourceTemplate": "github-releases"
     },
-    {
-      "matchManagers": [
-        "cargo"
-      ],
-      "groupName": "Rust dependencies"
-    },
-    {
-      "matchFileNames": [
-        "rust-toolchain.toml"
-      ],
-      "enabled": true
-    }
-  ]
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["* 1-9 1 * *"],
+    "automerge": true,
+    "platformAutomerge": false,
+    "automergeSchedule": ["* 10-16 * * 1-5"]
+  }
 }
