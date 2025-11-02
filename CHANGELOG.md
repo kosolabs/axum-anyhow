@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3](https://github.com/kosolabs/axum-anyhow/compare/v0.7.2...v0.7.3) - 2025-11-02
+
+### Other
+
+- *(deps)* update dependency rust to v1.91.0 ([#67](https://github.com/kosolabs/axum-anyhow/pull/67))
+- *(deps)* lock file maintenance ([#68](https://github.com/kosolabs/axum-anyhow/pull/68))
+- Update renovate.json ([#65](https://github.com/kosolabs/axum-anyhow/pull/65))
+
 ## [0.7.2](https://github.com/kosolabs/axum-anyhow/compare/v0.7.1...v0.7.2) - 2025-11-01
 
 ### Other
