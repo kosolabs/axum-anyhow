@@ -69,22 +69,21 @@ async fn get_user_handler(Path(id): Path<String>) -> ApiResult<Json<User>> {
 
 // Mock database
 struct Database {
-    users: HashMap<u32, User>,
+    users: HashMap<u32, &'static str>,
 }
 
 impl Database {
     fn connect() -> Result<Self> {
-        // Simulate database connection with sample data
-        #[rustfmt::skip]
-        let users = HashMap::from([
-            (1, User { id: 1, name: "Alice".to_string() }),
-            (2, User { id: 2, name: "Bob".to_string() }),
-        ]);
-        Ok(Database { users })
+        Ok(Database {
+            users: HashMap::from([(1, "Alice"), (2, "Bob"), (3, "Eve")]),
+        })
     }
 
     fn get_user(&self, id: &u32) -> Option<User> {
-        self.users.get(id).cloned()
+        self.users.get(id).map(|name| User {
+            id: *id,
+            name: name.to_string(),
+        })
     }
 }
 
@@ -318,22 +317,21 @@ async fn get_user_handler(
 
 // Mock database
 struct Database {
-    users: HashMap<u32, User>,
+    users: HashMap<u32, &'static str>,
 }
 
 impl Database {
     fn connect() -> Result<Self> {
-        // Simulate database connection with sample data
-        #[rustfmt::skip]
-        let users = HashMap::from([
-            (1, User { id: 1, name: "Alice".to_string() }),
-            (2, User { id: 2, name: "Bob".to_string() }),
-        ]);
-        Ok(Database { users })
+        Ok(Database {
+            users: HashMap::from([(1, "Alice"), (2, "Bob"), (3, "Eve")]),
+        })
     }
 
     fn get_user(&self, id: &u32) -> Option<User> {
-        self.users.get(id).cloned()
+        self.users.get(id).map(|name| User {
+            id: *id,
+            name: name.to_string(),
+        })
     }
 }
 

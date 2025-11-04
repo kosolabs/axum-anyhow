@@ -1,0 +1,33 @@
+GET http://localhost:3000/users/1
+
+HTTP/1.1 200  - OK
+content-type: application/json
+
+{
+  "id": 1,
+  "name": "Alice"
+}
+
+###
+GET http://localhost:3000/users/0
+
+HTTP/1.1 404  - Not Found
+content-type: application/json
+
+{
+  "status": 404,
+  "title": "User Not Found",
+  "detail": "No user with that ID"
+}
+
+###
+GET http://localhost:3000/users/a
+
+HTTP/1.1 400  - Bad Request
+content-type: application/json
+
+{
+  "status": 400,
+  "title": "Invalid User ID",
+  "detail": "User ID must be a u32"
+}
