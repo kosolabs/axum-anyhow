@@ -211,7 +211,32 @@ All errors are serialized as JSON with the following structure:
 
 By default, when an `anyhow::Error` is automatically converted to an `ApiError` (via the `From` trait), the error detail is set to the generic message `"Something went wrong"`. This protects against accidentally leaking sensitive information in production.
 
-However, during development, it can be helpful to see the actual error messages, especially if you log the error response in the browser's console. You can set the `AXUM_ANYHOW_EXPOSE_ERRORS` environment variable to include the error message in the detail field:
+However, during development, it can be helpful to see the actual error messages. You can enable this in two ways:
+
+#### Programmatically (Recommended)
+
+```rust
+use axum_anyhow::set_expose_errors;
+
+// Enable for development
+set_expose_errors(true);
+
+// Disable for production
+set_expose_errors(false);
+```
+
+This is especially useful in tests or when you want fine-grained control:
+
+```rust
+use axum_anyhow::set_expose_errors;
+
+#[cfg(debug_assertions)]
+set_expose_errors(true);
+```
+
+#### Via Environment Variable
+
+You can also set the `AXUM_ANYHOW_EXPOSE_ERRORS` environment variable:
 
 ```bash
 AXUM_ANYHOW_EXPOSE_ERRORS=1 cargo run
@@ -225,8 +250,8 @@ With this enabled:
 use anyhow::anyhow;
 use axum_anyhow::ApiError;
 
-// Without env var: detail = "Something went wrong"
-// With env var: detail = "Database connection failed"
+// Without expose_errors: detail = "Something went wrong"
+// With expose_errors: detail = "Database connection failed"
 let error: ApiError = anyhow!("Database connection failed").into();
 ```
 
