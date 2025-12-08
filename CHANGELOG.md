@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0](https://github.com/kosolabs/axum-anyhow/compare/v0.7.10...v0.8.0) - 2025-12-08
+
+### Other
+
+- Rename set_error_hook to on_error ([#84](https://github.com/kosolabs/axum-anyhow/pull/84))
+
 ## [0.7.10](https://github.com/kosolabs/axum-anyhow/compare/v0.7.9...v0.7.10) - 2025-12-08
 
 ### Other
