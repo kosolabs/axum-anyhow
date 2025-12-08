@@ -33,9 +33,9 @@ use axum::http::StatusCode;
 /// let api_result = handler("not-an-email".to_string()).await;
 /// assert!(api_result.is_err());
 /// let err = api_result.unwrap_err();
-/// assert_eq!(err.status, StatusCode::BAD_REQUEST);
-/// assert_eq!(err.title, "Invalid Email");
-/// assert_eq!(err.detail, "Email must contain @");
+/// assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+/// assert_eq!(err.title(), "Invalid Email");
+/// assert_eq!(err.detail(), "Email must contain @");
 /// # })
 /// ```
 ///
@@ -93,9 +93,9 @@ pub trait ResultExt<T>: sealed::SealedResult {
     ///     .context_status(StatusCode::IM_A_TEAPOT, "I'm a teapot", "This server is a teapot, not a coffee maker");
     /// assert!(result.is_err());
     /// let err = result.unwrap_err();
-    /// assert_eq!(err.status, StatusCode::IM_A_TEAPOT);
-    /// assert_eq!(err.title, "I'm a teapot");
-    /// assert_eq!(err.detail, "This server is a teapot, not a coffee maker");
+    /// assert_eq!(err.status(), StatusCode::IM_A_TEAPOT);
+    /// assert_eq!(err.title(), "I'm a teapot");
+    /// assert_eq!(err.detail(), "This server is a teapot, not a coffee maker");
     /// ```
     fn context_status(self, status: StatusCode, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -121,7 +121,7 @@ pub trait ResultExt<T>: sealed::SealedResult {
     ///     .context_bad_request("Invalid Input", "Age must be a valid number");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::BAD_REQUEST);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::BAD_REQUEST);
     /// ```
     fn context_bad_request(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -147,7 +147,7 @@ pub trait ResultExt<T>: sealed::SealedResult {
     ///     .context_unauthorized("Unauthorized", "Valid authentication token required");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::UNAUTHORIZED);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::UNAUTHORIZED);
     /// ```
     fn context_unauthorized(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -173,7 +173,7 @@ pub trait ResultExt<T>: sealed::SealedResult {
     ///     .context_forbidden("Forbidden", "Admin access required");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::FORBIDDEN);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::FORBIDDEN);
     /// ```
     fn context_forbidden(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -199,7 +199,7 @@ pub trait ResultExt<T>: sealed::SealedResult {
     ///     .context_not_found("Not Found", "The requested user does not exist");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::NOT_FOUND);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::NOT_FOUND);
     /// ```
     fn context_not_found(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -225,7 +225,7 @@ pub trait ResultExt<T>: sealed::SealedResult {
     ///     .context_method_not_allowed("Method Not Allowed", "Only GET requests are supported");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::METHOD_NOT_ALLOWED);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::METHOD_NOT_ALLOWED);
     /// ```
     fn context_method_not_allowed(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -251,7 +251,7 @@ pub trait ResultExt<T>: sealed::SealedResult {
     ///     .context_conflict("Conflict", "A user with this email already exists");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::CONFLICT);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::CONFLICT);
     /// ```
     fn context_conflict(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -277,7 +277,7 @@ pub trait ResultExt<T>: sealed::SealedResult {
     ///     .context_unprocessable_entity("Validation Failed", "Password must be at least 8 characters");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::UNPROCESSABLE_ENTITY);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::UNPROCESSABLE_ENTITY);
     /// ```
     fn context_unprocessable_entity(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -303,7 +303,7 @@ pub trait ResultExt<T>: sealed::SealedResult {
     ///     .context_too_many_requests("Too Many Requests", "Rate limit exceeded. Please try again later");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::TOO_MANY_REQUESTS);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::TOO_MANY_REQUESTS);
     /// ```
     fn context_too_many_requests(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -329,7 +329,7 @@ pub trait ResultExt<T>: sealed::SealedResult {
     ///     .context_internal("Internal Error", "Database connection failed");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::INTERNAL_SERVER_ERROR);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::INTERNAL_SERVER_ERROR);
     /// ```
     fn context_internal(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -355,7 +355,7 @@ pub trait ResultExt<T>: sealed::SealedResult {
     ///     .context_bad_gateway("Bad Gateway", "Upstream service returned an invalid response");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::BAD_GATEWAY);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::BAD_GATEWAY);
     /// ```
     fn context_bad_gateway(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -381,7 +381,7 @@ pub trait ResultExt<T>: sealed::SealedResult {
     ///     .context_service_unavailable("Service Unavailable", "Service is currently under maintenance");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::SERVICE_UNAVAILABLE);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::SERVICE_UNAVAILABLE);
     /// ```
     fn context_service_unavailable(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -407,7 +407,7 @@ pub trait ResultExt<T>: sealed::SealedResult {
     ///     .context_gateway_timeout("Gateway Timeout", "Upstream service did not respond in time");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::GATEWAY_TIMEOUT);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::GATEWAY_TIMEOUT);
     /// ```
     fn context_gateway_timeout(self, title: &str, detail: &str) -> ApiResult<T>;
 }
@@ -499,9 +499,9 @@ where
 /// let api_result = handler(1).await;
 /// assert!(api_result.is_err());
 /// let err = api_result.unwrap_err();
-/// assert_eq!(err.status, StatusCode::NOT_FOUND);
-/// assert_eq!(err.title, "User Not Found");
-/// assert_eq!(err.detail, "No user with that ID exists");
+/// assert_eq!(err.status(), StatusCode::NOT_FOUND);
+/// assert_eq!(err.title(), "User Not Found");
+/// assert_eq!(err.detail(), "No user with that ID exists");
 /// # })
 /// ```
 ///
@@ -558,9 +558,9 @@ pub trait OptionExt<T>: sealed::SealedOption {
     ///     .context_status(StatusCode::IM_A_TEAPOT, "I'm a teapot", "Cannot brew coffee with a teapot");
     /// assert!(result.is_err());
     /// let err = result.unwrap_err();
-    /// assert_eq!(err.status, StatusCode::IM_A_TEAPOT);
-    /// assert_eq!(err.title, "I'm a teapot");
-    /// assert_eq!(err.detail, "Cannot brew coffee with a teapot");
+    /// assert_eq!(err.status(), StatusCode::IM_A_TEAPOT);
+    /// assert_eq!(err.title(), "I'm a teapot");
+    /// assert_eq!(err.detail(), "Cannot brew coffee with a teapot");
     /// ```
     fn context_status(self, status: StatusCode, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -586,7 +586,7 @@ pub trait OptionExt<T>: sealed::SealedOption {
     ///     .context_bad_request("Missing Parameter", "Required parameter 'age' is missing");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::BAD_REQUEST);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::BAD_REQUEST);
     /// ```
     fn context_bad_request(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -612,7 +612,7 @@ pub trait OptionExt<T>: sealed::SealedOption {
     ///     .context_unauthorized("Unauthorized", "Authentication token is required");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::UNAUTHORIZED);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::UNAUTHORIZED);
     /// ```
     fn context_unauthorized(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -637,7 +637,7 @@ pub trait OptionExt<T>: sealed::SealedOption {
     ///     .context_forbidden("Forbidden", "Admin privileges required to access this resource");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::FORBIDDEN);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::FORBIDDEN);
     /// ```
     fn context_forbidden(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -670,7 +670,7 @@ pub trait OptionExt<T>: sealed::SealedOption {
     ///     .context_method_not_allowed("Method Not Allowed", "This endpoint only supports GET requests");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::METHOD_NOT_ALLOWED);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::METHOD_NOT_ALLOWED);
     /// ```
     fn context_method_not_allowed(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -696,7 +696,7 @@ pub trait OptionExt<T>: sealed::SealedOption {
     ///     .context_conflict("Conflict", "Username is already taken");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::CONFLICT);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::CONFLICT);
     /// ```
     fn context_conflict(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -721,7 +721,7 @@ pub trait OptionExt<T>: sealed::SealedOption {
     ///     .context_unprocessable_entity("Validation Failed", "Email must contain an @ symbol");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::UNPROCESSABLE_ENTITY);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::UNPROCESSABLE_ENTITY);
     /// ```
     fn context_unprocessable_entity(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -747,7 +747,7 @@ pub trait OptionExt<T>: sealed::SealedOption {
     ///     .context_too_many_requests("Too Many Requests", "API rate limit exceeded. Please try again later");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::TOO_MANY_REQUESTS);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::TOO_MANY_REQUESTS);
     /// ```
     fn context_too_many_requests(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -773,7 +773,7 @@ pub trait OptionExt<T>: sealed::SealedOption {
     ///     .context_internal("Internal Error", "Critical configuration missing");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::INTERNAL_SERVER_ERROR);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::INTERNAL_SERVER_ERROR);
     /// ```
     fn context_internal(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -799,7 +799,7 @@ pub trait OptionExt<T>: sealed::SealedOption {
     ///     .context_bad_gateway("Bad Gateway", "Upstream service returned invalid response");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::BAD_GATEWAY);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::BAD_GATEWAY);
     /// ```
     fn context_bad_gateway(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -825,7 +825,7 @@ pub trait OptionExt<T>: sealed::SealedOption {
     ///     .context_service_unavailable("Service Unavailable", "Service is temporarily down for maintenance");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::SERVICE_UNAVAILABLE);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::SERVICE_UNAVAILABLE);
     /// ```
     fn context_service_unavailable(self, title: &str, detail: &str) -> ApiResult<T>;
 
@@ -851,7 +851,7 @@ pub trait OptionExt<T>: sealed::SealedOption {
     ///     .context_gateway_timeout("Gateway Timeout", "Upstream service did not respond within timeout");
     ///
     /// assert!(result.is_err());
-    /// assert_eq!(result.unwrap_err().status, StatusCode::GATEWAY_TIMEOUT);
+    /// assert_eq!(result.unwrap_err().status(), StatusCode::GATEWAY_TIMEOUT);
     /// ```
     fn context_gateway_timeout(self, title: &str, detail: &str) -> ApiResult<T>;
 }
