@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.10](https://github.com/kosolabs/axum-anyhow/compare/v0.7.9...v0.7.10) - 2025-12-08
+
+### Other
+
+- Add programmatic override to expose errors ([#82](https://github.com/kosolabs/axum-anyhow/pull/82))
+
 ## [0.7.9](https://github.com/kosolabs/axum-anyhow/compare/v0.7.8...v0.7.9) - 2025-12-08
 
 ### Other
