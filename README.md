@@ -205,6 +205,100 @@ All errors are serialized as JSON with the following structure:
 }
 ```
 
+## Advanced Features
+
+### Adding Metadata to Errors
+
+You can include custom metadata in error responses using the `meta` field. This is useful for adding request IDs, trace information, timestamps, or other contextual data:
+
+```rust
+use axum::http::StatusCode;
+use axum_anyhow::ApiError;
+use serde_json::json;
+
+let error = ApiError::builder()
+    .status(StatusCode::NOT_FOUND)
+    .title("User Not Found")
+    .detail("No user with the given ID")
+    .meta(json!({
+        "request_id": "abc-123",
+        "timestamp": "2024-01-01T12:00:00Z"
+    }))
+    .build();
+```
+
+This produces a JSON response like:
+
+```json
+{
+  "status": 404,
+  "title": "User Not Found",
+  "detail": "No user with the given ID",
+  "meta": {
+    "request_id": "abc-123",
+    "timestamp": "2024-01-01T12:00:00Z"
+  }
+}
+```
+
+### Request-Aware Error Metadata
+
+For automatically enriching errors with request context (like request IDs, URIs, or headers), use the middleware and meta callback:
+
+```rust,no_run
+use axum::{Router, routing::get};
+use axum_anyhow::{set_meta_callback, ErrorInterceptorLayer, ApiResult};
+use serde_json::json;
+use uuid::Uuid;
+
+#[tokio::main]
+async fn main() {
+    // Set up a callback to enrich all errors with request metadata
+    set_meta_callback(|meta, request| {
+        *meta = Some(json!({
+            "request_id": Uuid::new_v4().to_string(),
+            "method": request.method().as_str(),
+            "uri": request.uri().to_string(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        }));
+    });
+
+    // Apply the middleware to your router
+    let app: Router = Router::new()
+        .route("/users/{id}", get(handler))
+        .layer(ErrorInterceptorLayer);
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn handler() -> ApiResult<String> {
+    // Any error returned will automatically include the metadata
+    // from the callback (request_id, method, uri, timestamp)
+    Ok("Hello!".to_string())
+}
+```
+
+You can also manually add metadata alongside automatic enrichment:
+
+```rust
+use axum_anyhow::{ApiError, ApiErrorBuilderExt};
+use axum::extract::Request;
+use serde_json::json;
+
+fn create_error(request: &Request) -> ApiError {
+    ApiError::builder()
+        .status(axum::http::StatusCode::NOT_FOUND)
+        .title("Resource Not Found")
+        .detail("The requested resource does not exist")
+        .meta(json!({"custom": "data"}))
+        .with_request_meta(request)  // Also adds request context
+        .build()
+}
+```
+
+See the `examples/with-meta.rs` for a complete working example.
+
 ## Development Features
 
 ### Exposing Error Details
