@@ -84,31 +84,55 @@ pub fn is_expose_errors_enabled() -> bool {
 /// use axum_anyhow::ApiError;
 /// use serde_json::json;
 ///
-/// let error = ApiError {
-///     status: StatusCode::NOT_FOUND,
-///     title: "Not Found".to_string(),
-///     detail: "User not found".to_string(),
-///     meta: Some(json!({
+/// let error = ApiError::builder()
+///     .status(StatusCode::NOT_FOUND)
+///     .title("Not Found")
+///     .detail("User not found")
+///     .meta(json!({
 ///         "request_id": "abc-123"
-///     })),
-///     error: None,
-/// };
+///     }))
+///     .build();
 /// ```
 #[derive(Debug)]
 pub struct ApiError {
     /// The HTTP status code for this error
-    pub status: StatusCode,
+    pub(crate) status: StatusCode,
     /// A short, human-readable summary of the error
-    pub title: String,
+    pub(crate) title: String,
     /// A detailed explanation of the error
-    pub detail: String,
+    pub(crate) detail: String,
     /// Optional metadata that can be included in the error response
-    pub meta: Option<Value>,
+    pub(crate) meta: Option<Value>,
     /// The underlying error that caused this API error
-    pub error: Option<Error>,
+    pub(crate) error: Option<Error>,
 }
 
 impl ApiError {
+    /// Gets the HTTP status code
+    pub fn status(&self) -> StatusCode {
+        self.status
+    }
+
+    /// Gets the error title
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+
+    /// Gets the error detail
+    pub fn detail(&self) -> &str {
+        &self.detail
+    }
+
+    /// Gets the metadata, if any
+    pub fn meta(&self) -> Option<&Value> {
+        self.meta.as_ref()
+    }
+
+    /// Gets the underlying error, if any
+    pub fn error(&self) -> Option<&Error> {
+        self.error.as_ref()
+    }
+
     /// Creates a new builder for constructing an `ApiError`.
     ///
     /// # Example
@@ -172,10 +196,10 @@ impl Default for ApiError {
     /// use axum_anyhow::ApiError;
     ///
     /// let error = ApiError::default();
-    /// assert_eq!(error.status, StatusCode::INTERNAL_SERVER_ERROR);
-    /// assert_eq!(error.title, "Internal Error");
-    /// assert_eq!(error.detail, "Something went wrong");
-    /// assert!(error.error.is_none());
+    /// assert_eq!(error.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    /// assert_eq!(error.title(), "Internal Error");
+    /// assert_eq!(error.detail(), "Something went wrong");
+    /// assert!(error.error().is_none());
     /// ```
     fn default() -> Self {
         Self {
@@ -341,10 +365,10 @@ impl ApiErrorBuilder {
     ///     .error(anyhow!("Connection pool exhausted"))
     ///     .build();
     ///
-    /// assert_eq!(error.status, StatusCode::INTERNAL_SERVER_ERROR);
-    /// assert_eq!(error.title, "Database Error");
-    /// assert_eq!(error.detail, "Failed to execute query");
-    /// assert_eq!(error.error.unwrap().to_string(), "Connection pool exhausted");
+    /// assert_eq!(error.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    /// assert_eq!(error.title(), "Database Error");
+    /// assert_eq!(error.detail(), "Failed to execute query");
+    /// assert_eq!(error.error().unwrap().to_string(), "Connection pool exhausted");
     /// ```
     pub fn error(mut self, error: impl Into<Error>) -> Self {
         self.error = Some(error.into());
@@ -371,7 +395,7 @@ impl ApiErrorBuilder {
     ///     .meta(json!({"request_id": "abc-123", "timestamp": 1234567890}))
     ///     .build();
     ///
-    /// assert!(error.meta.is_some());
+    /// assert!(error.meta().is_some());
     /// ```
     pub fn meta(mut self, meta: Value) -> Self {
         self.meta = Some(meta);
@@ -397,15 +421,15 @@ impl ApiErrorBuilder {
     ///     .detail("Invalid request parameters")
     ///     .build();
     ///
-    /// assert_eq!(error.status, StatusCode::BAD_REQUEST);
-    /// assert_eq!(error.title, "Bad Request");
-    /// assert_eq!(error.detail, "Invalid request parameters");
+    /// assert_eq!(error.status(), StatusCode::BAD_REQUEST);
+    /// assert_eq!(error.title(), "Bad Request");
+    /// assert_eq!(error.detail(), "Invalid request parameters");
     ///
     /// // Using defaults
     /// let default_error = ApiError::builder().build();
-    /// assert_eq!(default_error.status, StatusCode::INTERNAL_SERVER_ERROR);
-    /// assert_eq!(default_error.title, "Internal Error");
-    /// assert_eq!(default_error.detail, "Something went wrong");
+    /// assert_eq!(default_error.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    /// assert_eq!(default_error.title(), "Internal Error");
+    /// assert_eq!(default_error.detail(), "Something went wrong");
     /// ```
     pub fn build(self) -> ApiError {
         let error = ApiError {

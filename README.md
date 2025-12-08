@@ -305,7 +305,7 @@ use axum_anyhow::on_error;
 
 // Set up error logging
 on_error(|err| {
-    tracing::error!("API Error: {} ({}): {}", err.status, err.title, err.detail);
+    tracing::error!("API Error: {} ({}): {}", err.status(), err.title(), err.detail());
 });
 ```
 
@@ -318,7 +318,7 @@ use axum::http::StatusCode;
 
 // Set up the hook once at application startup
 on_error(|err| {
-    eprintln!("Error occurred: {}", err.detail);
+    eprintln!("Error occurred: {}", err.detail());
 });
 
 // The hook will be called for all of these:
