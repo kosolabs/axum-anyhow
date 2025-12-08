@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0](https://github.com/kosolabs/axum-anyhow/compare/v0.8.0...v0.9.0) - 2025-12-08
+
+### Other
+
+- Use ApiError getters instead of direct field access ([#89](https://github.com/kosolabs/axum-anyhow/pull/89))
+- Add a new meta field for additional context ([#87](https://github.com/kosolabs/axum-anyhow/pull/87))
+
 ## [0.8.0](https://github.com/kosolabs/axum-anyhow/compare/v0.7.10...v0.8.0) - 2025-12-08
 
 ### Other
