@@ -205,6 +205,44 @@ All errors are serialized as JSON with the following structure:
 }
 ```
 
+### Adding Metadata to Errors
+
+You can include custom metadata in error responses using the `meta` field. This is useful for adding request IDs, trace information, timestamps, or other contextual data:
+
+```rust
+use axum::http::StatusCode;
+use axum_anyhow::ApiError;
+use serde_json::json;
+
+let error = ApiError::builder()
+    .status(StatusCode::NOT_FOUND)
+    .title("User Not Found")
+    .detail("No user with the given ID")
+    .meta(json!({
+        "request_id": "abc-123",
+        "timestamp": "2024-01-01T12:00:00Z",
+        "user_id": 42
+    }))
+    .build();
+```
+
+This produces a JSON response like:
+
+```json
+{
+  "status": 404,
+  "title": "User Not Found",
+  "detail": "No user with the given ID",
+  "meta": {
+    "request_id": "abc-123",
+    "timestamp": "2024-01-01T12:00:00Z",
+    "user_id": 42
+  }
+}
+```
+
+The `meta` field is omitted from the response if not set, keeping responses clean when metadata isn't needed.
+
 ## Development Features
 
 ### Exposing Error Details

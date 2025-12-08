@@ -6,6 +6,7 @@ use axum::{
     Json,
 };
 use serde::Serialize;
+use serde_json::Value;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Global flag to control whether error details should be exposed in API responses.
@@ -69,7 +70,10 @@ pub fn is_expose_errors_enabled() -> bool {
 /// {
 ///   "status": 404,
 ///   "title": "Not Found",
-///   "detail": "The requested resource does not exist"
+///   "detail": "The requested resource does not exist",
+///   "meta": {
+///     "request_id": "abc-123"
+///   }
 /// }
 /// ```
 ///
@@ -78,11 +82,15 @@ pub fn is_expose_errors_enabled() -> bool {
 /// ```rust
 /// use axum::http::StatusCode;
 /// use axum_anyhow::ApiError;
+/// use serde_json::json;
 ///
 /// let error = ApiError {
 ///     status: StatusCode::NOT_FOUND,
 ///     title: "Not Found".to_string(),
 ///     detail: "User not found".to_string(),
+///     meta: Some(json!({
+///         "request_id": "abc-123"
+///     })),
 ///     error: None,
 /// };
 /// ```
@@ -94,6 +102,8 @@ pub struct ApiError {
     pub title: String,
     /// A detailed explanation of the error
     pub detail: String,
+    /// Optional metadata that can be included in the error response
+    pub meta: Option<Value>,
     /// The underlying error that caused this API error
     pub error: Option<Error>,
 }
@@ -172,6 +182,7 @@ impl Default for ApiError {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             title: "Internal Error".to_string(),
             detail: "Something went wrong".to_string(),
+            meta: None,
             error: None,
         }
     }
@@ -206,6 +217,8 @@ struct ApiErrorResponse {
     status: u16,
     title: String,
     detail: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    meta: Option<Value>,
 }
 
 /// Converts from `ApiError` to an HTTP `Response`.
@@ -218,6 +231,7 @@ impl IntoResponse for ApiError {
             status: self.status.as_u16(),
             title: self.title,
             detail: self.detail,
+            meta: self.meta,
         });
 
         (self.status, body).into_response()
@@ -249,6 +263,7 @@ pub struct ApiErrorBuilder {
     status: Option<StatusCode>,
     title: Option<String>,
     detail: Option<String>,
+    meta: Option<Value>,
     error: Option<Error>,
 }
 
@@ -336,6 +351,33 @@ impl ApiErrorBuilder {
         self
     }
 
+    /// Sets custom metadata for the error.
+    ///
+    /// This metadata will be included in the JSON response under the `meta` field.
+    /// It can contain any JSON-serializable data, such as request IDs, trace information,
+    /// or other contextual data.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum::http::StatusCode;
+    /// use axum_anyhow::ApiError;
+    /// use serde_json::json;
+    ///
+    /// let error = ApiError::builder()
+    ///     .status(StatusCode::NOT_FOUND)
+    ///     .title("Not Found")
+    ///     .detail("User not found")
+    ///     .meta(json!({"request_id": "abc-123", "timestamp": 1234567890}))
+    ///     .build();
+    ///
+    /// assert!(error.meta.is_some());
+    /// ```
+    pub fn meta(mut self, meta: Value) -> Self {
+        self.meta = Some(meta);
+        self
+    }
+
     /// Builds the `ApiError` instance.
     ///
     /// If `status`, `title`, or `detail` have not been set, they will default to:
@@ -372,6 +414,7 @@ impl ApiErrorBuilder {
             detail: self
                 .detail
                 .unwrap_or_else(|| "Something went wrong".to_string()),
+            meta: self.meta,
             error: self.error,
         };
         invoke_hook(&error);
@@ -691,5 +734,116 @@ mod tests {
         unsafe {
             std::env::remove_var("AXUM_ANYHOW_EXPOSE_ERRORS");
         }
+    }
+
+    #[test]
+    fn test_api_error_with_meta() {
+        use serde_json::json;
+
+        let error = ApiError::builder()
+            .status(StatusCode::NOT_FOUND)
+            .title("Not Found")
+            .detail("User not found")
+            .meta(json!({"request_id": "abc-123", "timestamp": 1234567890}))
+            .build();
+
+        assert_eq!(error.status, StatusCode::NOT_FOUND);
+        assert_eq!(error.title, "Not Found");
+        assert_eq!(error.detail, "User not found");
+        assert!(error.meta.is_some());
+
+        let meta = error.meta.unwrap();
+        assert_eq!(meta["request_id"], "abc-123");
+        assert_eq!(meta["timestamp"], 1234567890);
+    }
+
+    #[test]
+    fn test_api_error_without_meta() {
+        let error = ApiError::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .title("Bad Request")
+            .detail("Invalid input")
+            .build();
+
+        assert!(error.meta.is_none());
+    }
+
+    #[test]
+    fn test_api_error_default_has_none_meta() {
+        let error = ApiError::default();
+        assert!(error.meta.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_into_response_with_meta() {
+        use serde_json::json;
+
+        let api_err = ApiError::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .title("Server Error")
+            .detail("Something went wrong")
+            .meta(json!({"trace_id": "xyz-789"}))
+            .build();
+
+        let response = api_err.into_response();
+
+        // Verify status
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
+        // Verify JSON body includes meta
+        let body = response.into_body();
+        let bytes = body.collect().await.unwrap().to_bytes();
+        let json: Value = serde_json::from_slice(&bytes).unwrap();
+
+        assert_eq!(json["status"], 500);
+        assert_eq!(json["title"], "Server Error");
+        assert_eq!(json["detail"], "Something went wrong");
+        assert!(json["meta"].is_object());
+        assert_eq!(json["meta"]["trace_id"], "xyz-789");
+    }
+
+    #[tokio::test]
+    async fn test_into_response_without_meta() {
+        let api_err = ApiError::builder()
+            .status(StatusCode::NOT_FOUND)
+            .title("Not Found")
+            .detail("Resource not found")
+            .build();
+
+        let response = api_err.into_response();
+
+        // Verify JSON body does not include meta field
+        let body = response.into_body();
+        let bytes = body.collect().await.unwrap().to_bytes();
+        let json: Value = serde_json::from_slice(&bytes).unwrap();
+
+        assert_eq!(json["status"], 404);
+        assert_eq!(json["title"], "Not Found");
+        assert_eq!(json["detail"], "Resource not found");
+        // Meta should be omitted from JSON when None (due to skip_serializing_if)
+        assert!(json.get("meta").is_none());
+    }
+
+    #[test]
+    fn test_api_error_builder_fluent_with_meta() {
+        use serde_json::json;
+
+        let error = ApiError::builder()
+            .status(StatusCode::CONFLICT)
+            .title("Conflict")
+            .detail("Resource already exists")
+            .meta(json!({"duplicate_field": "email", "value": "test@example.com"}))
+            .error(anyhow!("Unique constraint violation"))
+            .build();
+
+        assert_eq!(error.status, StatusCode::CONFLICT);
+        assert_eq!(error.title, "Conflict");
+        assert_eq!(error.detail, "Resource already exists");
+        assert!(error.error.is_some());
+        assert!(error.meta.is_some());
+
+        let meta = error.meta.unwrap();
+        assert_eq!(meta["duplicate_field"], "email");
+        assert_eq!(meta["value"], "test@example.com");
     }
 }
