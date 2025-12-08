@@ -96,15 +96,15 @@ pub fn is_expose_errors_enabled() -> bool {
 #[derive(Debug)]
 pub struct ApiError {
     /// The HTTP status code for this error
-    pub(crate) status: StatusCode,
+    status: StatusCode,
     /// A short, human-readable summary of the error
-    pub(crate) title: String,
+    title: String,
     /// A detailed explanation of the error
-    pub(crate) detail: String,
+    detail: String,
     /// Optional metadata that can be included in the error response
-    pub(crate) meta: Option<Value>,
+    meta: Option<Value>,
     /// The underlying error that caused this API error
-    pub(crate) error: Option<Error>,
+    error: Option<Error>,
 }
 
 impl ApiError {

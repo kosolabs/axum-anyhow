@@ -1155,9 +1155,9 @@ mod tests {
 
         assert!(api_result.is_err());
         let err = api_result.unwrap_err();
-        assert_eq!(err.status, StatusCode::BAD_REQUEST);
-        assert_eq!(err.title, "Bad Request");
-        assert_eq!(err.detail, "Invalid data");
+        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(err.title(), "Bad Request");
+        assert_eq!(err.detail(), "Invalid data");
     }
 
     #[test]
@@ -1176,9 +1176,9 @@ mod tests {
 
         assert!(api_result.is_err());
         let err = api_result.unwrap_err();
-        assert_eq!(err.status, StatusCode::BAD_REQUEST);
-        assert_eq!(err.title, "Bad Request");
-        assert_eq!(err.detail, "Value must be a number");
+        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(err.title(), "Bad Request");
+        assert_eq!(err.detail(), "Value must be a number");
     }
 
     #[test]
@@ -1188,9 +1188,9 @@ mod tests {
 
         assert!(api_result.is_err());
         let err = api_result.unwrap_err();
-        assert_eq!(err.status, StatusCode::BAD_REQUEST);
-        assert_eq!(err.title, "Bad Request");
-        assert_eq!(err.detail, "Value is required");
+        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(err.title(), "Bad Request");
+        assert_eq!(err.detail(), "Value is required");
     }
 
     #[test]
@@ -1207,9 +1207,9 @@ mod tests {
         let anyhow_err = anyhow!("Custom error");
         let api_err = anyhow_err.context_status(StatusCode::IM_A_TEAPOT, "Teapot", "I'm a teapot");
 
-        assert_eq!(api_err.status, StatusCode::IM_A_TEAPOT);
-        assert_eq!(api_err.title, "Teapot");
-        assert_eq!(api_err.detail, "I'm a teapot");
+        assert_eq!(api_err.status(), StatusCode::IM_A_TEAPOT);
+        assert_eq!(api_err.title(), "Teapot");
+        assert_eq!(api_err.detail(), "I'm a teapot");
     }
 
     #[test]
@@ -1217,9 +1217,9 @@ mod tests {
         let anyhow_err = anyhow!("Invalid input");
         let api_err = anyhow_err.context_bad_request("Bad Request", "Field validation failed");
 
-        assert_eq!(api_err.status, StatusCode::BAD_REQUEST);
-        assert_eq!(api_err.title, "Bad Request");
-        assert_eq!(api_err.detail, "Field validation failed");
+        assert_eq!(api_err.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(api_err.title(), "Bad Request");
+        assert_eq!(api_err.detail(), "Field validation failed");
     }
 
     #[test]
@@ -1231,7 +1231,7 @@ mod tests {
         let result = get_value().context_bad_request("Bad Request", "Could not retrieve value");
 
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().status, StatusCode::BAD_REQUEST);
+        assert_eq!(result.unwrap_err().status(), StatusCode::BAD_REQUEST);
     }
 
     #[test]
@@ -1243,7 +1243,7 @@ mod tests {
         let result = get_value().context_not_found("Not Found", "Value does not exist");
 
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().status, StatusCode::NOT_FOUND);
+        assert_eq!(result.unwrap_err().status(), StatusCode::NOT_FOUND);
     }
 
     #[test]
@@ -1256,7 +1256,7 @@ mod tests {
 
         let result = helper();
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().status, StatusCode::BAD_REQUEST);
+        assert_eq!(result.unwrap_err().status(), StatusCode::BAD_REQUEST);
     }
 
     #[test]
@@ -1269,6 +1269,6 @@ mod tests {
 
         let result = helper();
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().status, StatusCode::NOT_FOUND);
+        assert_eq!(result.unwrap_err().status(), StatusCode::NOT_FOUND);
     }
 }
