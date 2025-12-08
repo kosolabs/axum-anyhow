@@ -13,7 +13,7 @@ jobs:
   cargo:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.0
+      - uses: actions/checkout@v6.0.1
       - uses: moonrepo/setup-rust@v1
         with:
           components: clippy,rustfmt
