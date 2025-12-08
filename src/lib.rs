@@ -5,7 +5,7 @@ mod extensions;
 mod helpers;
 mod hook;
 
-pub use error::{ApiError, ApiErrorBuilder};
+pub use error::{is_expose_errors_enabled, set_expose_errors, ApiError, ApiErrorBuilder};
 pub use extensions::{IntoApiError, OptionExt, ResultExt};
 pub use helpers::{
     bad_gateway, bad_request, conflict, forbidden, gateway_timeout, internal_error,

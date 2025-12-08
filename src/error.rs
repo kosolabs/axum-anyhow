@@ -6,6 +6,56 @@ use axum::{
     Json,
 };
 use serde::Serialize;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+/// Global flag to control whether error details should be exposed in API responses.
+/// This can be set programmatically or via the `AXUM_ANYHOW_EXPOSE_ERRORS` environment variable.
+static EXPOSE_ERRORS: AtomicBool = AtomicBool::new(false);
+
+/// Sets whether error details should be exposed in API responses.
+///
+/// When enabled, the actual error message will be included in the `detail` field
+/// of error responses. This is useful for development but should be disabled in production.
+///
+/// # Example
+///
+/// ```rust
+/// use axum_anyhow::set_expose_errors;
+///
+/// // Enable for development
+/// set_expose_errors(true);
+///
+/// // Disable for production
+/// set_expose_errors(false);
+/// ```
+pub fn set_expose_errors(expose: bool) {
+    EXPOSE_ERRORS.store(expose, Ordering::Relaxed);
+}
+
+/// Returns whether error details are currently being exposed.
+///
+/// This checks both the programmatic setting and the `AXUM_ANYHOW_EXPOSE_ERRORS`
+/// environment variable. The programmatic setting takes precedence.
+///
+/// # Example
+///
+/// ```rust
+/// use axum_anyhow::{set_expose_errors, is_expose_errors_enabled};
+///
+/// set_expose_errors(true);
+/// assert!(is_expose_errors_enabled());
+/// ```
+pub fn is_expose_errors_enabled() -> bool {
+    // Check programmatic setting first
+    if EXPOSE_ERRORS.load(Ordering::Relaxed) {
+        return true;
+    }
+
+    // Fall back to environment variable
+    std::env::var("AXUM_ANYHOW_EXPOSE_ERRORS")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
+}
 
 /// An API error that can be converted into an HTTP response.
 ///
@@ -132,17 +182,15 @@ impl Default for ApiError {
 /// By default, all errors are converted to 500 Internal Server Error responses.
 /// Use the extension traits to specify different status codes.
 ///
-/// Set the `AXUM_ANYHOW_EXPOSE_ERRORS` environment variable to expose the actual
-/// error message in the detail field (useful for development).
+/// Set the `AXUM_ANYHOW_EXPOSE_ERRORS` environment variable or use `set_expose_errors(true)`
+/// to expose the actual error message in the detail field (useful for development).
 impl<E> From<E> for ApiError
 where
     E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
         let error = err.into();
-        let should_expose = std::env::var("AXUM_ANYHOW_EXPOSE_ERRORS")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(false);
+        let should_expose = is_expose_errors_enabled();
 
         let mut builder = ApiError::builder();
         if should_expose {
@@ -337,6 +385,7 @@ mod tests {
     use anyhow::anyhow;
     use http_body_util::BodyExt;
     use serde_json::Value;
+    use serial_test::serial;
 
     #[test]
     fn test_into_api_error_from_anyhow() {
@@ -464,8 +513,7 @@ mod tests {
 
     #[test]
     fn test_anyhow_error_coerced_to_api_error_has_defaults() {
-        // Ensure the env var is not set for this test
-        std::env::remove_var("AXUM_ANYHOW_EXPOSE_ERRORS");
+        set_expose_errors(false);
 
         let anyhow_err = anyhow!("Some error occurred");
         let api_err: ApiError = anyhow_err.into();
@@ -556,8 +604,9 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_expose_error_details_enabled() {
-        std::env::set_var("AXUM_ANYHOW_EXPOSE_ERRORS", "1");
+        set_expose_errors(true);
 
         let anyhow_err = anyhow!("Database connection failed");
         let api_err: ApiError = anyhow_err.into();
@@ -567,12 +616,13 @@ mod tests {
         assert_eq!(api_err.detail, "Database connection failed");
         assert!(api_err.error.is_some());
 
-        std::env::remove_var("AXUM_ANYHOW_EXPOSE_ERRORS");
+        set_expose_errors(false);
     }
 
     #[test]
+    #[serial]
     fn test_expose_error_details_disabled() {
-        std::env::remove_var("AXUM_ANYHOW_EXPOSE_ERRORS");
+        set_expose_errors(false);
 
         let anyhow_err = anyhow!("Database connection failed");
         let api_err: ApiError = anyhow_err.into();
@@ -584,14 +634,62 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_expose_error_details_with_true() {
-        std::env::set_var("AXUM_ANYHOW_EXPOSE_ERRORS", "true");
+        set_expose_errors(true);
 
         let anyhow_err = anyhow!("Connection timeout");
         let api_err: ApiError = anyhow_err.into();
 
         assert_eq!(api_err.detail, "Connection timeout");
 
-        std::env::remove_var("AXUM_ANYHOW_EXPOSE_ERRORS");
+        set_expose_errors(false);
+    }
+
+    #[test]
+    #[serial]
+    fn test_expose_error_via_env_var() {
+        // Ensure programmatic setting is disabled
+        set_expose_errors(false);
+
+        // Set environment variable
+        unsafe {
+            std::env::set_var("AXUM_ANYHOW_EXPOSE_ERRORS", "1");
+        }
+
+        let anyhow_err = anyhow!("Environment variable test");
+        let api_err: ApiError = anyhow_err.into();
+
+        // Should expose details via env var
+        assert_eq!(api_err.detail, "Environment variable test");
+
+        // Clean up
+        unsafe {
+            std::env::remove_var("AXUM_ANYHOW_EXPOSE_ERRORS");
+        }
+    }
+
+    #[test]
+    #[serial]
+    fn test_programmatic_setting_overrides_env_var() {
+        // Set environment variable to disabled
+        unsafe {
+            std::env::set_var("AXUM_ANYHOW_EXPOSE_ERRORS", "0");
+        }
+
+        // But enable programmatically (should take precedence)
+        set_expose_errors(true);
+
+        let anyhow_err = anyhow!("Programmatic override test");
+        let api_err: ApiError = anyhow_err.into();
+
+        // Should expose details because programmatic setting takes precedence
+        assert_eq!(api_err.detail, "Programmatic override test");
+
+        // Clean up
+        set_expose_errors(false);
+        unsafe {
+            std::env::remove_var("AXUM_ANYHOW_EXPOSE_ERRORS");
+        }
     }
 }
