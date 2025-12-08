@@ -92,9 +92,9 @@ mod tests {
             let captured_detail = captured_detail.clone();
 
             move |err| {
-                *captured_status.lock().unwrap() = Some(err.status);
-                *captured_title.lock().unwrap() = Some(err.title.clone());
-                *captured_detail.lock().unwrap() = Some(err.detail.clone());
+                *captured_status.lock().unwrap() = Some(err.status());
+                *captured_title.lock().unwrap() = Some(err.title().to_string());
+                *captured_detail.lock().unwrap() = Some(err.detail().to_string());
             }
         });
 
@@ -169,7 +169,7 @@ mod tests {
             .build();
 
         // If we get here without panicking, the test passes
-        assert_eq!(error.status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(error.status(), StatusCode::INTERNAL_SERVER_ERROR);
     }
 
     #[test]
