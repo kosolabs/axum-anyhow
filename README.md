@@ -258,6 +258,54 @@ let error: ApiError = anyhow!("Database connection failed").into();
 > [!WARNING]
 > Error messages may contain sensitive information like file paths, database details, or internal system information that should not be exposed to end users in production.
 
+### Error Hook
+
+You can set a global hook that will be called whenever an `ApiError` is created. This is useful for logging, monitoring, or debugging errors in your application.
+
+```rust
+use axum_anyhow::on_error;
+
+// Set up error logging
+on_error(|err| {
+    tracing::error!("API Error: {} ({}): {}", err.status, err.title, err.detail);
+});
+```
+
+The hook receives a reference to the `ApiError` and will be called automatically whenever an error is built, whether through the builder pattern, helper functions, or automatic conversions:
+
+```rust
+use axum_anyhow::{on_error, bad_request, ApiError, IntoApiError, ResultExt};
+use anyhow::anyhow;
+use axum::http::StatusCode;
+
+// Set up the hook once at application startup
+on_error(|err| {
+    eprintln!("Error occurred: {}", err.detail);
+});
+
+// The hook will be called for all of these:
+let error1: ApiError = bad_request("Invalid Input", "Name is required");
+
+let result: ApiError = anyhow!("Database error")
+    .context_internal("Internal Error", "Failed to connect");
+
+let error2 = ApiError::builder()
+    .status(StatusCode::NOT_FOUND)
+    .title("Not Found")
+    .detail("Resource missing")
+    .build();
+```
+
+Common use cases for error hooks:
+
+- **Logging**: Send errors to your logging system (e.g., `tracing`, `log`, `slog`)
+- **Monitoring**: Report errors to monitoring services (e.g., Sentry, Datadog, New Relic)
+- **Metrics**: Increment error counters for observability
+- **Debugging**: Print detailed error information during development
+
+> [!TIP]
+> The error hook is global and thread-safe. You can call `on_error` multiple times to replace the hook, but only one hook can be active at a time.
+
 ## Motivation
 
 Without `axum-anyhow`, the code in our quick start example would look like this:

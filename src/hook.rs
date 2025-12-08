@@ -12,7 +12,7 @@ static ERROR_HOOK: RwLock<Option<ErrorHook>> = RwLock::new(None);
 /// use axum::http::StatusCode;
 /// use axum_anyhow::ApiError;
 ///
-/// axum_anyhow::set_error_hook(|err| {
+/// axum_anyhow::on_error(|err| {
 ///     tracing::error!("Failed: {} ({}): {}", err.status, err.title, err.detail)
 /// });
 ///
@@ -23,7 +23,7 @@ static ERROR_HOOK: RwLock<Option<ErrorHook>> = RwLock::new(None);
 ///     .detail("This is a test")
 ///     .build();
 /// ```
-pub fn set_error_hook<F>(hook: F)
+pub fn on_error<F>(hook: F)
 where
     F: Fn(&ApiError) + Send + Sync + 'static,
 {
@@ -57,7 +57,7 @@ mod tests {
         let called = Arc::new(AtomicBool::new(false));
 
         // Set up the hook
-        set_error_hook({
+        on_error({
             let called = called.clone();
             move |_err| {
                 called.store(true, Ordering::SeqCst);
@@ -86,7 +86,7 @@ mod tests {
         let captured_title = Arc::new(Mutex::new(None));
         let captured_detail = Arc::new(Mutex::new(None));
 
-        set_error_hook({
+        on_error({
             let captured_status = captured_status.clone();
             let captured_title = captured_title.clone();
             let captured_detail = captured_detail.clone();
@@ -127,7 +127,7 @@ mod tests {
         let second_call = Arc::new(AtomicU8::new(0));
 
         // Set first hook
-        set_error_hook({
+        on_error({
             let first_call = first_call.clone();
             move |_err| {
                 first_call.fetch_add(1, Ordering::SeqCst);
@@ -141,7 +141,7 @@ mod tests {
             .build();
 
         // Replace with second hook
-        set_error_hook({
+        on_error({
             let second_call = second_call.clone();
             move |_err| {
                 second_call.fetch_add(1, Ordering::SeqCst);
@@ -177,7 +177,7 @@ mod tests {
     fn test_hook_with_multiple_errors() {
         let counter = Arc::new(AtomicU8::new(0));
 
-        set_error_hook({
+        on_error({
             let counter = counter.clone();
             move |_err| {
                 counter.fetch_add(1, Ordering::SeqCst);

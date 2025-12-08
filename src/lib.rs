@@ -12,7 +12,7 @@ pub use helpers::{
     method_not_allowed, not_found, service_unavailable, too_many_requests, unauthorized,
     unprocessable_entity,
 };
-pub use hook::set_error_hook;
+pub use hook::on_error;
 
 use anyhow::Result;
 
