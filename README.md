@@ -245,18 +245,18 @@ The `meta` field is omitted from the response if not set, keeping responses clea
 
 ### Automatic Error Enrichment with Request Context
 
-For automatically enriching all errors with request context (like request IDs, URIs, or headers), use the middleware and error enricher:
+For automatically enriching all errors with request context (like request IDs, URIs, or headers), use the middleware with an error enricher:
 
 ```rust,no_run
 use axum::{Router, routing::get};
-use axum_anyhow::{set_error_enricher, ErrorInterceptorLayer, ApiResult};
+use axum_anyhow::{ErrorInterceptorLayer, ApiResult};
 use serde_json::json;
 
 #[tokio::main]
 async fn main() {
-    // Set up a callback to enrich all errors with request metadata
-    set_error_enricher(|builder, ctx| {
-        *builder = builder.clone().meta(json!({
+    // Create an error interceptor layer with an enricher callback
+    let enricher_layer = ErrorInterceptorLayer::new(|builder, ctx| {
+        builder.meta(json!({
             "method": ctx.method().as_str(),
             "uri": ctx.uri().to_string(),
             "user_agent": ctx.headers()
@@ -264,13 +264,13 @@ async fn main() {
                 .and_then(|v| v.to_str().ok())
                 .unwrap_or("unknown"),
             "timestamp": chrono::Utc::now().to_rfc3339(),
-        }));
+        }))
     });
 
     // Apply the middleware to your router
     let app: Router = Router::new()
         .route("/users/{id}", get(handler))
-        .layer(ErrorInterceptorLayer);
+        .layer(enricher_layer);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();

@@ -1,24 +1,24 @@
 use anyhow::Result;
 use axum::{extract::Path, routing::get, Json, Router};
-use axum_anyhow::{set_error_enricher, ApiResult, ErrorInterceptorLayer, OptionExt, ResultExt};
+use axum_anyhow::{ApiResult, ErrorInterceptorLayer, OptionExt, ResultExt};
 use serde_json::json;
 use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() {
-    // Set up the error enricher to automatically add request metadata to all errors
-    set_error_enricher(|builder, ctx| {
-        *builder = builder.clone().meta(json!({
+    // Create the error interceptor layer with an enricher that adds request metadata
+    let enricher_layer = ErrorInterceptorLayer::new(|builder, ctx| {
+        builder.meta(json!({
             "method": ctx.method().as_str(),
             "uri": ctx.uri().to_string(),
             "timestamp": chrono::Utc::now().to_rfc3339(),
-        }));
+        }))
     });
 
     // Build the router with the error interceptor middleware
     let app = Router::new()
         .route("/users/{id}", get(get_user_handler))
-        .layer(ErrorInterceptorLayer);
+        .layer(enricher_layer);
 
     println!("Server running on http://0.0.0.0:3000");
     println!("Try:");
