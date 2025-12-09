@@ -243,6 +243,66 @@ This produces a JSON response like:
 
 The `meta` field is omitted from the response if not set, keeping responses clean when metadata isn't needed.
 
+### Automatic Error Enrichment with Request Context
+
+For automatically enriching all errors with request context (like request IDs, URIs, or headers), use the middleware and error enricher:
+
+```rust,no_run
+use axum::{Router, routing::get};
+use axum_anyhow::{set_error_enricher, ErrorInterceptorLayer, ApiResult};
+use serde_json::json;
+
+#[tokio::main]
+async fn main() {
+    // Set up a callback to enrich all errors with request metadata
+    set_error_enricher(|builder, ctx| {
+        *builder = builder.clone().meta(json!({
+            "method": ctx.method.as_str(),
+            "uri": ctx.uri.to_string(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        }));
+    });
+
+    // Apply the middleware to your router
+    let app: Router = Router::new()
+        .route("/users/{id}", get(handler))
+        .layer(ErrorInterceptorLayer);
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn handler() -> ApiResult<String> {
+    // Any error returned will automatically include the metadata
+    // from the enricher (method, uri, timestamp)
+    Ok("Hello!".to_string())
+}
+```
+
+With this setup, any error created in your handlers will automatically include request context in the `meta` field:
+
+```json
+{
+  "status": 404,
+  "title": "User Not Found",
+  "detail": "No user with that ID",
+  "meta": {
+    "method": "GET",
+    "uri": "/users/123",
+    "timestamp": "2024-01-01T12:00:00Z"
+  }
+}
+```
+
+The enricher callback receives:
+
+- A mutable reference to the `ApiErrorBuilder` - you can add metadata or modify any field
+- A `RequestContext` with the request's `method` and `uri`
+
+This works seamlessly with all error types (`Result`, `Option`) and the `?` operator - no manual enrichment needed!
+
+See the `examples/with-enricher.rs` for a complete working example.
+
 ## Development Features
 
 ### Exposing Error Details

@@ -1,4 +1,4 @@
-use crate::hook::invoke_hook;
+use crate::{hook::invoke_hook, middleware::invoke_enricher};
 use anyhow::Error;
 use axum::{
     http::StatusCode,
@@ -291,6 +291,19 @@ pub struct ApiErrorBuilder {
     error: Option<Error>,
 }
 
+impl Clone for ApiErrorBuilder {
+    fn clone(&self) -> Self {
+        Self {
+            status: self.status,
+            title: self.title.clone(),
+            detail: self.detail.clone(),
+            meta: self.meta.clone(),
+            // anyhow::Error doesn't implement Clone, so we skip it
+            error: None,
+        }
+    }
+}
+
 impl ApiErrorBuilder {
     /// Sets the HTTP status code for the error.
     ///
@@ -431,7 +444,10 @@ impl ApiErrorBuilder {
     /// assert_eq!(default_error.title(), "Internal Error");
     /// assert_eq!(default_error.detail(), "Something went wrong");
     /// ```
-    pub fn build(self) -> ApiError {
+    pub fn build(mut self) -> ApiError {
+        // Invoke enricher if middleware is enabled and request context is available
+        invoke_enricher(&mut self);
+
         let error = ApiError {
             status: self.status.unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             title: self.title.unwrap_or_else(|| "Internal Error".to_string()),
@@ -441,6 +457,7 @@ impl ApiErrorBuilder {
             meta: self.meta,
             error: self.error,
         };
+
         invoke_hook(&error);
         error
     }

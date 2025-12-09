@@ -4,6 +4,7 @@ mod error;
 mod extensions;
 mod helpers;
 mod hook;
+mod middleware;
 
 pub use error::{is_expose_errors_enabled, set_expose_errors, ApiError, ApiErrorBuilder};
 pub use extensions::{IntoApiError, OptionExt, ResultExt};
@@ -13,6 +14,7 @@ pub use helpers::{
     unprocessable_entity,
 };
 pub use hook::on_error;
+pub use middleware::{set_error_enricher, ErrorInterceptorLayer, RequestContext};
 
 use anyhow::Result;
 
