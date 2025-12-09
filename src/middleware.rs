@@ -6,7 +6,7 @@
 use crate::ApiErrorBuilder;
 use axum::{
     extract::Request,
-    http::{Method, Uri},
+    http::{HeaderMap, Method, Uri},
     response::Response,
 };
 use futures_util::future::BoxFuture;
@@ -20,9 +20,39 @@ use tower::{Layer, Service};
 #[derive(Clone, Debug)]
 pub struct RequestContext {
     /// The HTTP method of the request
-    pub method: Method,
+    method: Method,
     /// The URI of the request
-    pub uri: Uri,
+    uri: Uri,
+    /// The HTTP headers of the request
+    headers: HeaderMap,
+}
+
+impl RequestContext {
+    /// Returns a reference to the HTTP method of the request.
+    pub fn method(&self) -> &Method {
+        &self.method
+    }
+
+    /// Returns a reference to the URI of the request.
+    pub fn uri(&self) -> &Uri {
+        &self.uri
+    }
+
+    /// Returns a reference to the HTTP headers of the request.
+    pub fn headers(&self) -> &HeaderMap {
+        &self.headers
+    }
+
+    /// Creates a `RequestContext` from an Axum `Request`.
+    ///
+    /// Extracts the method, URI, headers, and extensions from the request.
+    pub fn from_request(request: &Request) -> Self {
+        Self {
+            method: request.method().clone(),
+            uri: request.uri().clone(),
+            headers: request.headers().clone(),
+        }
+    }
 }
 
 thread_local! {
@@ -47,8 +77,12 @@ static ERROR_ENRICHER: RwLock<Option<ErrorEnricher>> = RwLock::new(None);
 ///
 /// set_error_enricher(|builder, ctx| {
 ///     *builder = builder.clone().meta(json!({
-///         "method": ctx.method.as_str(),
-///         "uri": ctx.uri.to_string(),
+///         "method": ctx.method().as_str(),
+///         "uri": ctx.uri().to_string(),
+///         "user_agent": ctx.headers()
+///             .get("user-agent")
+///             .and_then(|v| v.to_str().ok())
+///             .unwrap_or("unknown"),
 ///     }));
 /// });
 /// ```
@@ -126,10 +160,7 @@ where
 
     fn call(&mut self, request: Request) -> Self::Future {
         // Capture request context
-        let ctx = RequestContext {
-            method: request.method().clone(),
-            uri: request.uri().clone(),
-        };
+        let ctx = RequestContext::from_request(&request);
 
         let future = self.inner.call(request);
 
@@ -163,8 +194,12 @@ where
 /// // Set up the enricher
 /// set_error_enricher(|builder, ctx| {
 ///     *builder = builder.clone().meta(json!({
-///         "method": ctx.method.as_str(),
-///         "uri": ctx.uri.to_string(),
+///         "method": ctx.method().as_str(),
+///         "uri": ctx.uri().to_string(),
+///         "user_agent": ctx.headers()
+///             .get("user-agent")
+///             .and_then(|v| v.to_str().ok())
+///             .unwrap_or("unknown"),
 ///     }));
 /// });
 ///
@@ -204,6 +239,7 @@ mod tests {
         let ctx = RequestContext {
             method: Method::GET,
             uri: "/test".parse().unwrap(),
+            headers: HeaderMap::default(),
         };
         set_request_context(ctx);
 
@@ -252,6 +288,7 @@ mod tests {
         let ctx = RequestContext {
             method: Method::POST,
             uri: "/api/users".parse().unwrap(),
+            headers: HeaderMap::default(),
         };
 
         // Set context
