@@ -14,7 +14,7 @@ pub use helpers::{
     unprocessable_entity,
 };
 pub use hook::on_error;
-pub use middleware::{set_error_enricher, ErrorInterceptorLayer, RequestContext};
+pub use middleware::{ErrorInterceptorLayer, RequestContext};
 
 use anyhow::Result;
 

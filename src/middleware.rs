@@ -10,7 +10,7 @@ use axum::{
     response::Response,
 };
 use futures_util::future::BoxFuture;
-use std::sync::RwLock;
+use std::sync::Arc;
 use std::task::{Context, Poll};
 use tower::{Layer, Service};
 
@@ -55,83 +55,48 @@ impl RequestContext {
     }
 }
 
-thread_local! {
-    static REQUEST_CONTEXT: std::cell::RefCell<Option<RequestContext>> = const { std::cell::RefCell::new(None) };
-}
-
 /// Type alias for the error enricher function.
-pub type ErrorEnricher = Box<dyn Fn(&mut ApiErrorBuilder, &RequestContext) + Send + Sync>;
+pub type ErrorEnricher =
+    Arc<dyn Fn(ApiErrorBuilder, &RequestContext) -> ApiErrorBuilder + Send + Sync + 'static>;
 
-static ERROR_ENRICHER: RwLock<Option<ErrorEnricher>> = RwLock::new(None);
-
-/// Sets a global enricher that will be called when errors are built.
-///
-/// The enricher receives a mutable reference to the error builder and the request context,
-/// allowing it to add metadata or modify other error fields based on the request.
-///
-/// # Example
-///
-/// ```rust
-/// use axum_anyhow::set_error_enricher;
-/// use serde_json::json;
-///
-/// set_error_enricher(|builder, ctx| {
-///     *builder = builder.clone().meta(json!({
-///         "method": ctx.method().as_str(),
-///         "uri": ctx.uri().to_string(),
-///         "user_agent": ctx.headers()
-///             .get("user-agent")
-///             .and_then(|v| v.to_str().ok())
-///             .unwrap_or("unknown"),
-///     }));
-/// });
-/// ```
-pub fn set_error_enricher<F>(enricher: F)
-where
-    F: Fn(&mut ApiErrorBuilder, &RequestContext) + Send + Sync + 'static,
-{
-    let mut guard = ERROR_ENRICHER
-        .write()
-        .expect("Failed to get write lock for ErrorEnricher");
-    *guard = Some(Box::new(enricher));
+thread_local! {
+    static REQUEST_DATA: std::cell::RefCell<Option<(RequestContext, ErrorEnricher)>> = const { std::cell::RefCell::new(None) };
 }
 
-/// Invokes the global error enricher if one is set and request context is available.
+/// Invokes the error enricher if one is set and request context is available.
 ///
 /// This is called internally by `ApiErrorBuilder::build()`.
-pub(crate) fn invoke_enricher(builder: &mut ApiErrorBuilder) {
-    REQUEST_CONTEXT.with(|ctx| {
-        if let Some(request_ctx) = ctx.borrow().as_ref() {
-            let guard = ERROR_ENRICHER
-                .read()
-                .expect("Failed to get read lock for ErrorEnricher");
-            if let Some(enricher) = guard.as_ref() {
-                enricher(builder, request_ctx);
-            }
+pub(crate) fn invoke_enricher(builder: ApiErrorBuilder) -> ApiErrorBuilder {
+    REQUEST_DATA.with(|data| {
+        if let Some((request_ctx, enricher)) = data.borrow().as_ref() {
+            enricher(builder, request_ctx)
+        } else {
+            builder
         }
-    });
+    })
 }
 
-/// Sets the request context for the current task.
+/// Sets the request context and enricher for the current task.
 ///
-/// This is called by the middleware to make request information available
+/// This is called by the middleware to make request information and enricher available
 /// to error enrichment.
-fn set_request_context(ctx: RequestContext) {
-    REQUEST_CONTEXT.with(|c| {
-        *c.borrow_mut() = Some(ctx);
+fn set_request_data(ctx: RequestContext, enricher: ErrorEnricher) {
+    REQUEST_DATA.with(|data| {
+        *data.borrow_mut() = Some((ctx, enricher));
     });
 }
 
-/// Clears the request context for the current task.
-fn clear_request_context() {
-    REQUEST_CONTEXT.with(|c| {
-        *c.borrow_mut() = None;
+/// Clears the request context and enricher for the current task.
+fn clear_request_data() {
+    REQUEST_DATA.with(|data| {
+        *data.borrow_mut() = None;
     });
 }
 
 /// Service that captures request context and makes it available for error enrichment.
 pub struct ErrorInterceptor<S> {
     inner: S,
+    enricher: ErrorEnricher,
 }
 
 impl<S> Clone for ErrorInterceptor<S>
@@ -141,6 +106,7 @@ where
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
+            enricher: self.enricher.clone(),
         }
     }
 }
@@ -161,18 +127,19 @@ where
     fn call(&mut self, request: Request) -> Self::Future {
         // Capture request context
         let ctx = RequestContext::from_request(&request);
+        let enricher = self.enricher.clone();
 
         let future = self.inner.call(request);
 
         Box::pin(async move {
-            // Set context for this task
-            set_request_context(ctx);
+            // Set context and enricher for this task
+            set_request_data(ctx, enricher);
 
             // Call the inner service
             let result = future.await;
 
             // Clear context after request completes
-            clear_request_context();
+            clear_request_data();
 
             result
         })
@@ -181,40 +148,60 @@ where
 
 /// Middleware layer that enables error enrichment with request context.
 ///
-/// This layer captures request information (method, URI) and makes it available
-/// to the error enricher callback set via [`set_error_enricher`].
+/// This layer captures request information (method, URI, headers) and makes it available
+/// to the error enricher callback.
 ///
 /// # Example
 ///
 /// ```rust
 /// use axum::Router;
-/// use axum_anyhow::{ErrorInterceptorLayer, set_error_enricher};
+/// use axum_anyhow::ErrorInterceptorLayer;
 /// use serde_json::json;
 ///
-/// // Set up the enricher
-/// set_error_enricher(|builder, ctx| {
-///     *builder = builder.clone().meta(json!({
+/// // Create the layer with an enricher
+/// let enricher_layer = ErrorInterceptorLayer::new(|builder, ctx| {
+///     builder.meta(json!({
 ///         "method": ctx.method().as_str(),
 ///         "uri": ctx.uri().to_string(),
 ///         "user_agent": ctx.headers()
 ///             .get("user-agent")
 ///             .and_then(|v| v.to_str().ok())
 ///             .unwrap_or("unknown"),
-///     }));
+///     }))
 /// });
 ///
 /// // Apply the middleware
 /// let app: Router = Router::new()
-///     .layer(ErrorInterceptorLayer);
+///     .layer(enricher_layer);
 /// ```
-#[derive(Clone, Copy)]
-pub struct ErrorInterceptorLayer;
+#[derive(Clone)]
+pub struct ErrorInterceptorLayer {
+    enricher: ErrorEnricher,
+}
+
+impl ErrorInterceptorLayer {
+    /// Creates a new `ErrorInterceptorLayer` with the given enricher function.
+    ///
+    /// The enricher will be called for every error created during request handling,
+    /// allowing you to add request-specific metadata.
+    pub fn new<F>(enricher: F) -> Self
+    where
+        F: Fn(ApiErrorBuilder, &RequestContext) -> ApiErrorBuilder + Send + Sync + 'static,
+    {
+        Self {
+            enricher: Arc::new(enricher),
+        }
+    }
+}
 
 impl<S> Layer<S> for ErrorInterceptorLayer {
     type Service = ErrorInterceptor<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        ErrorInterceptor { inner }
+        ErrorInterceptor {
+            inner,
+            enricher: self.enricher.clone(),
+        }
     }
 }
 
@@ -227,21 +214,21 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_set_error_enricher() {
-        set_error_enricher(|builder, ctx| {
-            *builder = builder.clone().meta(json!({
+    fn test_error_enricher() {
+        let enricher = Arc::new(|builder: ApiErrorBuilder, ctx: &RequestContext| {
+            builder.meta(json!({
                 "method": ctx.method.as_str(),
                 "uri": ctx.uri.to_string(),
-            }));
+            }))
         });
 
-        // Set up request context
+        // Set up request context with enricher
         let ctx = RequestContext {
             method: Method::GET,
             uri: "/test".parse().unwrap(),
             headers: HeaderMap::default(),
         };
-        set_request_context(ctx);
+        set_request_data(ctx, enricher);
 
         // Build an error
         let error = crate::ApiError::builder()
@@ -256,20 +243,14 @@ mod tests {
         assert_eq!(meta["method"], "GET");
         assert_eq!(meta["uri"], "/test");
 
-        clear_request_context();
+        clear_request_data();
     }
 
     #[test]
     #[serial]
     fn test_enricher_without_context() {
-        set_error_enricher(|builder, ctx| {
-            *builder = builder.clone().meta(json!({
-                "method": ctx.method.as_str(),
-            }));
-        });
-
         // No request context set
-        clear_request_context();
+        clear_request_data();
 
         // Build an error
         let error = crate::ApiError::builder()
@@ -284,31 +265,32 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_request_context_lifecycle() {
+    fn test_request_data_lifecycle() {
         let ctx = RequestContext {
             method: Method::POST,
             uri: "/api/users".parse().unwrap(),
             headers: HeaderMap::default(),
         };
+        let enricher = Arc::new(|builder: ApiErrorBuilder, _ctx: &RequestContext| builder);
 
-        // Set context
-        set_request_context(ctx.clone());
+        // Set context and enricher
+        set_request_data(ctx.clone(), enricher);
 
         // Verify it's set
-        REQUEST_CONTEXT.with(|c| {
-            let borrowed = c.borrow();
+        REQUEST_DATA.with(|data| {
+            let borrowed = data.borrow();
             assert!(borrowed.is_some());
-            let stored = borrowed.as_ref().unwrap();
-            assert_eq!(stored.method, Method::POST);
-            assert_eq!(stored.uri.to_string(), "/api/users");
+            let (stored_ctx, _) = borrowed.as_ref().unwrap();
+            assert_eq!(stored_ctx.method, Method::POST);
+            assert_eq!(stored_ctx.uri.to_string(), "/api/users");
         });
 
         // Clear context
-        clear_request_context();
+        clear_request_data();
 
         // Verify it's cleared
-        REQUEST_CONTEXT.with(|c| {
-            assert!(c.borrow().is_none());
+        REQUEST_DATA.with(|data| {
+            assert!(data.borrow().is_none());
         });
     }
 }
