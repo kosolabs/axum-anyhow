@@ -1,4 +1,4 @@
-use crate::{hook::invoke_hook, middleware::invoke_enricher};
+use crate::{hook::invoke_hook, middleware::EnrichmentContext};
 use anyhow::Error;
 use axum::{
     http::StatusCode,
@@ -446,7 +446,7 @@ impl ApiErrorBuilder {
     /// ```
     pub fn build(mut self) -> ApiError {
         // Invoke enricher if middleware is enabled and request context is available
-        self = invoke_enricher(self);
+        self = EnrichmentContext::invoke(self);
 
         let error = ApiError {
             status: self.status.unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
