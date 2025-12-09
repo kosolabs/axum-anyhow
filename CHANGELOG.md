@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1](https://github.com/kosolabs/axum-anyhow/compare/v0.9.0...v0.9.1) - 2025-12-09
+
+### Other
+
+- Add ability to enrich errors with meta with a callback ([#92](https://github.com/kosolabs/axum-anyhow/pull/92))
+- Make ApiError fields private ([#90](https://github.com/kosolabs/axum-anyhow/pull/90))
+
 ## [0.9.0](https://github.com/kosolabs/axum-anyhow/compare/v0.8.0...v0.9.0) - 2025-12-08
 
 ### Other
