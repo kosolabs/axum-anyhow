@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0](https://github.com/kosolabs/axum-anyhow/compare/v0.9.1...v0.10.0) - 2025-12-09
+
+### Other
+
+- Improve readability of middleware ([#96](https://github.com/kosolabs/axum-anyhow/pull/96))
+- Store the error enricher and the request context together ([#95](https://github.com/kosolabs/axum-anyhow/pull/95))
+- Add header to the request context ([#93](https://github.com/kosolabs/axum-anyhow/pull/93))
+
 ## [0.9.1](https://github.com/kosolabs/axum-anyhow/compare/v0.9.0...v0.9.1) - 2025-12-09
 
 ### Other
