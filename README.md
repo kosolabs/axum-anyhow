@@ -257,8 +257,12 @@ async fn main() {
     // Set up a callback to enrich all errors with request metadata
     set_error_enricher(|builder, ctx| {
         *builder = builder.clone().meta(json!({
-            "method": ctx.method.as_str(),
-            "uri": ctx.uri.to_string(),
+            "method": ctx.method().as_str(),
+            "uri": ctx.uri().to_string(),
+            "user_agent": ctx.headers()
+                .get("user-agent")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("unknown"),
             "timestamp": chrono::Utc::now().to_rfc3339(),
         }));
     });
@@ -274,7 +278,7 @@ async fn main() {
 
 async fn handler() -> ApiResult<String> {
     // Any error returned will automatically include the metadata
-    // from the enricher (method, uri, timestamp)
+    // from the enricher (method, uri, user_agent, timestamp)
     Ok("Hello!".to_string())
 }
 ```
@@ -289,6 +293,7 @@ With this setup, any error created in your handlers will automatically include r
   "meta": {
     "method": "GET",
     "uri": "/users/123",
+    "user_agent": "Mozilla/5.0...",
     "timestamp": "2024-01-01T12:00:00Z"
   }
 }
@@ -297,7 +302,10 @@ With this setup, any error created in your handlers will automatically include r
 The enricher callback receives:
 
 - A mutable reference to the `ApiErrorBuilder` - you can add metadata or modify any field
-- A `RequestContext` with the request's `method` and `uri`
+- A `RequestContext` providing access to request information through getter methods:
+  - `method()` - returns the HTTP method
+  - `uri()` - returns the request URI
+  - `headers()` - returns the request headers
 
 This works seamlessly with all error types (`Result`, `Option`) and the `?` operator - no manual enrichment needed!
 

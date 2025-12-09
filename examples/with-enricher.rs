@@ -9,8 +9,8 @@ async fn main() {
     // Set up the error enricher to automatically add request metadata to all errors
     set_error_enricher(|builder, ctx| {
         *builder = builder.clone().meta(json!({
-            "method": ctx.method.as_str(),
-            "uri": ctx.uri.to_string(),
+            "method": ctx.method().as_str(),
+            "uri": ctx.uri().to_string(),
             "timestamp": chrono::Utc::now().to_rfc3339(),
         }));
     });
