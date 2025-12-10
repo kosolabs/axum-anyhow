@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1](https://github.com/kosolabs/axum-anyhow/compare/v0.10.0...v0.10.1) - 2025-12-10
+
+### Other
+
+- Improve error interceptor layer documentation ([#97](https://github.com/kosolabs/axum-anyhow/pull/97))
+
 ## [0.10.0](https://github.com/kosolabs/axum-anyhow/compare/v0.9.1...v0.10.0) - 2025-12-09
 
 ### Other
