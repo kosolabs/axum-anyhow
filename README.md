@@ -243,9 +243,9 @@ This produces a JSON response like:
 
 The `meta` field is omitted from the response if not set, keeping responses clean when metadata isn't needed.
 
-### Automatic Error Enrichment with Request Context
+### Error Enrichment
 
-For automatically enriching all errors with request context (like request IDs, URIs, or headers), use the middleware with an error enricher:
+Error responses can be enriched with metadata using the `ErrorInterceptorLayer` middleware:
 
 ```rust,no_run
 use axum::{Router, routing::get};
@@ -254,8 +254,8 @@ use serde_json::json;
 
 #[tokio::main]
 async fn main() {
-    // Create an error interceptor layer with an enricher callback
-    let enricher_layer = ErrorInterceptorLayer::new(|builder, ctx| {
+    // Create an error interceptor layer that adds request context to the metadata
+    let middleware = ErrorInterceptorLayer::new(|builder, ctx| {
         builder.meta(json!({
             "method": ctx.method().as_str(),
             "uri": ctx.uri().to_string(),
@@ -267,10 +267,10 @@ async fn main() {
         }))
     });
 
-    // Apply the middleware to your router
+    // Build the router with the error interceptor middleware
     let app: Router = Router::new()
         .route("/users/{id}", get(handler))
-        .layer(enricher_layer);
+        .layer(middleware);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -278,7 +278,7 @@ async fn main() {
 
 async fn handler() -> ApiResult<String> {
     // Any error returned will automatically include the metadata
-    // from the enricher (method, uri, user_agent, timestamp)
+    // from the middleware (method, uri, user_agent, timestamp)
     Ok("Hello!".to_string())
 }
 ```
@@ -299,15 +299,15 @@ With this setup, any error created in your handlers will automatically include r
 }
 ```
 
-The enricher callback receives:
+The error interceptor callback receives:
 
 - A mutable reference to the `ApiErrorBuilder` - you can add metadata or modify any field
-- A `RequestContext` providing access to request information through getter methods:
+- A `RequestSnapshot` providing access to request information through getter methods:
   - `method()` - returns the HTTP method
   - `uri()` - returns the request URI
   - `headers()` - returns the request headers
 
-This works seamlessly with all error types (`Result`, `Option`) and the `?` operator - no manual enrichment needed!
+This works seamlessly with all error types (`Result`, `Option`) and the `?` operator.
 
 See the `examples/with-enricher.rs` for a complete working example.
 

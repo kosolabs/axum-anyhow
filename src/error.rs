@@ -445,7 +445,6 @@ impl ApiErrorBuilder {
     /// assert_eq!(default_error.detail(), "Something went wrong");
     /// ```
     pub fn build(mut self) -> ApiError {
-        // Invoke enricher if middleware is enabled and request context is available
         self = EnrichmentContext::invoke(self);
 
         let error = ApiError {

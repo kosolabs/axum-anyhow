@@ -6,8 +6,8 @@ use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() {
-    // Create the error interceptor layer with an enricher that adds request metadata
-    let enricher_layer = ErrorInterceptorLayer::new(|builder, ctx| {
+    // Create an error interceptor layer that adds request context to the metadata
+    let middleware = ErrorInterceptorLayer::new(|builder, ctx| {
         builder.meta(json!({
             "method": ctx.method().as_str(),
             "uri": ctx.uri().to_string(),
@@ -18,7 +18,7 @@ async fn main() {
     // Build the router with the error interceptor middleware
     let app = Router::new()
         .route("/users/{id}", get(get_user_handler))
-        .layer(enricher_layer);
+        .layer(middleware);
 
     println!("Server running on http://0.0.0.0:3000");
     println!("Try:");
