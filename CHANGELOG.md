@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.2](https://github.com/kosolabs/axum-anyhow/compare/v0.10.1...v0.10.2) - 2025-12-15
+
+### Other
+
+- *(deps)* update dependency rust to v1.92.0 ([#99](https://github.com/kosolabs/axum-anyhow/pull/99))
+
 ## [0.10.1](https://github.com/kosolabs/axum-anyhow/compare/v0.10.0...v0.10.1) - 2025-12-10
 
 ### Other
