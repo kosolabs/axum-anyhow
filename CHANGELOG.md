@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.3](https://github.com/kosolabs/axum-anyhow/compare/v0.10.2...v0.10.3) - 2025-12-19
+
+### Other
+
+- Drop warning about crate being in active development ([#101](https://github.com/kosolabs/axum-anyhow/pull/101))
+
 ## [0.10.2](https://github.com/kosolabs/axum-anyhow/compare/v0.10.1...v0.10.2) - 2025-12-15
 
 ### Other
