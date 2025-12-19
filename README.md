@@ -8,9 +8,6 @@ A library for ergonomic error handling in Axum applications using anyhow.
 
 This crate provides extension traits and utilities to easily convert `Result` and `Option` types into HTTP error responses with proper status codes, titles, and details.
 
-> [!WARNING]
-> This project is new and under active development. The API is still in flux and may have breaking changes between releases. While we follow [semantic versioning](https://semver.org/) to prevent changes from breaking your build, you may need to perform manual migration steps when upgrading to new versions. Please review the [CHANGELOG](CHANGELOG.md) when updating.
-
 ## Features
 
 - Convert `anyhow::Result` to an `ApiError` with custom HTTP status codes.
@@ -26,7 +23,7 @@ Add this to your `Cargo.toml`:
 [dependencies]
 anyhow = "1.0"
 axum = "0.8"
-axum-anyhow = "0"  # Use the latest 0.x version from crates.io
+axum-anyhow = "0.10"
 serde = "1.0"
 tokio = { version = "1.48", features = ["full"] }
 ```
