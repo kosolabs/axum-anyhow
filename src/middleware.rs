@@ -10,12 +10,15 @@ use axum::{
     response::Response,
 };
 use futures_util::future::BoxFuture;
-use std::sync::Arc;
-use std::task::{Context, Poll};
+use std::{
+    cell::RefCell,
+    sync::Arc,
+    task::{Context, Poll},
+};
 use tower::{Layer, Service};
 
 thread_local! {
-    static ENRICHMENT_CONTEXT: std::cell::RefCell<Option<EnrichmentContext>> = const { std::cell::RefCell::new(None) };
+    static ENRICHMENT_CONTEXT: RefCell<Option<EnrichmentContext>> = const { RefCell::new(None) };
 }
 
 /// Request information snapshot available to the error enricher.
