@@ -1,31 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended",
-    "group:all"
+    "config:recommended"
   ],
   "timezone": "America/Los_Angeles",
   "schedule": [
     "before 10am on Monday"
-  ],
-  "customManagers": [
-    {
-      "description": "Update Rust stable version in rust-toolchain.toml",
-      "customType": "regex",
-      "managerFilePatterns": ["/(^|/)rust-toolchain\\.toml?$/"],
-      "matchStrings": [
-        "channel\\s*=\\s*\"(?<currentValue>\\d+\\.\\d+(\\.\\d+)?)\""
-      ],
-      "depNameTemplate": "rust",
-      "packageNameTemplate": "rust-lang/rust",
-      "datasourceTemplate": "github-releases"
-    },
-  ],
-  "lockFileMaintenance": {
-    "enabled": true,
-    "schedule": ["* 1-9 1 * *"],
-    "automerge": true,
-    "platformAutomerge": false,
-    "automergeSchedule": ["* 10-16 * * 1-5"]
-  }
+  ]
 }
