@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.5](https://github.com/kosolabs/axum-anyhow/compare/v0.10.4...v0.10.5) - 2026-01-20
+
+### Other
+
+- configure renovate to auto merge ([#115](https://github.com/kosolabs/axum-anyhow/pull/115))
+- configure renovate to group updates ([#114](https://github.com/kosolabs/axum-anyhow/pull/114))
+- *(deps)* update rust crate tower to v0.5.3 ([#112](https://github.com/kosolabs/axum-anyhow/pull/112))
+- *(deps)* update rust crate chrono to v0.4.43 ([#111](https://github.com/kosolabs/axum-anyhow/pull/111))
+- *(deps)* update release-plz/action action to v0.5.121 ([#110](https://github.com/kosolabs/axum-anyhow/pull/110))
+
 ## [0.10.4](https://github.com/kosolabs/axum-anyhow/compare/v0.10.3...v0.10.4) - 2026-01-12
 
 ### Fixed
