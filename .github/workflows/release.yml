@@ -15,6 +15,12 @@ jobs:
     environment:
       name: axum-anyhow-release
     steps:
+      - &app
+        id: app
+        uses: actions/create-github-app-token@v2.2.1
+        with:
+          app-id: 1855004
+          private-key: ${{ secrets.RELEASER_PRIVATE_KEY }}
       - &checkout
         uses: actions/checkout@v6.0.2
         with:
@@ -28,7 +34,7 @@ jobs:
         with:
           command: release
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app.outputs.token }}
 
   pr:
     runs-on: ubuntu-latest
@@ -42,10 +48,11 @@ jobs:
       group: release-plz-${{ github.ref }}
       cancel-in-progress: false
     steps:
+      - *app
       - *checkout
       - *install-rust
       - uses: release-plz/action@v0.5.127
         with:
           command: release-pr
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app.outputs.token }}
