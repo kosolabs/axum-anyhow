@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0](https://github.com/kosolabs/axum-anyhow/compare/v0.10.9...v0.11.0) - 2026-04-30
+
+### Added
+
+- support Option<String> for detail and simplify .context* methods ([#132](https://github.com/kosolabs/axum-anyhow/pull/132))
+
 ## [0.10.9](https://github.com/kosolabs/axum-anyhow/compare/v0.10.8...v0.10.9) - 2026-04-21
 
 ### Other
