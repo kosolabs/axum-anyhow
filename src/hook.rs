@@ -13,7 +13,7 @@ static ERROR_HOOK: RwLock<Option<ErrorHook>> = RwLock::new(None);
 /// use axum_anyhow::ApiError;
 ///
 /// axum_anyhow::on_error(|err| {
-///     tracing::error!("Failed: {} ({}): {}", err.status(), err.title(), err.detail())
+///     tracing::error!("Failed: {} ({}): {}", err.status(), err.title(), err.detail().unwrap_or(""))
 /// });
 ///
 /// // The hook set above will get called once we build an ApiError.
@@ -94,7 +94,7 @@ mod tests {
             move |err| {
                 *captured_status.lock().unwrap() = Some(err.status());
                 *captured_title.lock().unwrap() = Some(err.title().to_string());
-                *captured_detail.lock().unwrap() = Some(err.detail().to_string());
+                *captured_detail.lock().unwrap() = err.detail().map(|s| s.to_string());
             }
         });
 

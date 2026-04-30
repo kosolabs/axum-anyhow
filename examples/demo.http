@@ -16,8 +16,7 @@ content-type: application/json
 
 {
   "status": 404,
-  "title": "User Not Found",
-  "detail": "No user with that ID"
+  "title": "User Not Found"
 }
 
 ###

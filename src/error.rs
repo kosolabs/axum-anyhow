@@ -100,7 +100,7 @@ pub struct ApiError {
     /// A short, human-readable summary of the error
     title: String,
     /// A detailed explanation of the error
-    detail: String,
+    detail: Option<String>,
     /// Optional metadata that can be included in the error response
     meta: Option<Value>,
     /// The underlying error that caused this API error
@@ -119,8 +119,8 @@ impl ApiError {
     }
 
     /// Gets the error detail
-    pub fn detail(&self) -> &str {
-        &self.detail
+    pub fn detail(&self) -> Option<&str> {
+        self.detail.as_deref()
     }
 
     /// Gets the metadata, if any
@@ -174,10 +174,14 @@ impl ApiError {
     /// let anyhow_error = api_error.into_error();
     /// ```
     pub fn into_error(self) -> Error {
+        let msg = match self.detail {
+            Some(detail) => format!("{}: {}", self.title, detail),
+            None => self.title.clone(),
+        };
         if let Some(error) = self.error {
-            error.context(format!("{}: {}", self.title, self.detail))
+            error.context(msg)
         } else {
-            anyhow::anyhow!("{}: {}", self.title, self.detail)
+            anyhow::anyhow!("{}", msg)
         }
     }
 }
@@ -186,7 +190,7 @@ impl Default for ApiError {
     /// Creates a default `ApiError` with:
     /// - `status`: `StatusCode::INTERNAL_SERVER_ERROR`
     /// - `title`: `"Internal Error"`
-    /// - `detail`: `"Something went wrong"`
+    /// - `detail`: `None`
     /// - `error`: `None`
     ///
     /// # Example
@@ -198,14 +202,14 @@ impl Default for ApiError {
     /// let error = ApiError::default();
     /// assert_eq!(error.status(), StatusCode::INTERNAL_SERVER_ERROR);
     /// assert_eq!(error.title(), "Internal Error");
-    /// assert_eq!(error.detail(), "Something went wrong");
+    /// assert_eq!(error.detail(), None);
     /// assert!(error.error().is_none());
     /// ```
     fn default() -> Self {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             title: "Internal Error".to_string(),
-            detail: "Something went wrong".to_string(),
+            detail: None,
             meta: None,
             error: None,
         }
@@ -240,7 +244,8 @@ where
 struct ApiErrorResponse {
     status: u16,
     title: String,
-    detail: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    detail: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     meta: Option<Value>,
 }
@@ -380,7 +385,7 @@ impl ApiErrorBuilder {
     ///
     /// assert_eq!(error.status(), StatusCode::INTERNAL_SERVER_ERROR);
     /// assert_eq!(error.title(), "Database Error");
-    /// assert_eq!(error.detail(), "Failed to execute query");
+    /// assert_eq!(error.detail(), Some("Failed to execute query"));
     /// assert_eq!(error.error().unwrap().to_string(), "Connection pool exhausted");
     /// ```
     pub fn error(mut self, error: impl Into<Error>) -> Self {
@@ -436,13 +441,13 @@ impl ApiErrorBuilder {
     ///
     /// assert_eq!(error.status(), StatusCode::BAD_REQUEST);
     /// assert_eq!(error.title(), "Bad Request");
-    /// assert_eq!(error.detail(), "Invalid request parameters");
+    /// assert_eq!(error.detail(), Some("Invalid request parameters"));
     ///
     /// // Using defaults
     /// let default_error = ApiError::builder().build();
     /// assert_eq!(default_error.status(), StatusCode::INTERNAL_SERVER_ERROR);
     /// assert_eq!(default_error.title(), "Internal Error");
-    /// assert_eq!(default_error.detail(), "Something went wrong");
+    /// assert_eq!(default_error.detail(), None);
     /// ```
     pub fn build(mut self) -> ApiError {
         self = EnrichmentContext::invoke(self);
@@ -450,9 +455,7 @@ impl ApiErrorBuilder {
         let error = ApiError {
             status: self.status.unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             title: self.title.unwrap_or_else(|| "Internal Error".to_string()),
-            detail: self
-                .detail
-                .unwrap_or_else(|| "Something went wrong".to_string()),
+            detail: self.detail,
             meta: self.meta,
             error: self.error,
         };
@@ -477,7 +480,7 @@ mod tests {
 
         assert_eq!(api_err.status, StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(api_err.title, "Internal Error");
-        assert_eq!(api_err.detail, "Something went wrong");
+        assert_eq!(api_err.detail, None);
     }
 
     #[test]
@@ -490,7 +493,7 @@ mod tests {
 
         assert_eq!(error.status, StatusCode::BAD_REQUEST);
         assert_eq!(error.title, "Validation Error");
-        assert_eq!(error.detail, "Email is required");
+        assert_eq!(error.detail, Some("Email is required".to_string()));
         assert!(error.error.is_none());
     }
 
@@ -506,7 +509,10 @@ mod tests {
 
         assert_eq!(error.status, StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(error.title, "Database Error");
-        assert_eq!(error.detail, "Could not connect to the database");
+        assert_eq!(
+            error.detail,
+            Some("Could not connect to the database".to_string())
+        );
         assert!(error.error.is_some());
     }
 
@@ -520,7 +526,7 @@ mod tests {
 
         assert_eq!(error.status, StatusCode::NOT_FOUND);
         assert_eq!(error.title, "Not Found");
-        assert_eq!(error.detail, "Resource not found");
+        assert_eq!(error.detail, Some("Resource not found".to_string()));
     }
 
     #[test]
@@ -532,7 +538,7 @@ mod tests {
 
         assert_eq!(error.status, StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(error.title, "Error");
-        assert_eq!(error.detail, "Something went wrong");
+        assert_eq!(error.detail, Some("Something went wrong".to_string()));
     }
 
     #[test]
@@ -544,7 +550,7 @@ mod tests {
 
         assert_eq!(error.status, StatusCode::BAD_REQUEST);
         assert_eq!(error.title, "Internal Error");
-        assert_eq!(error.detail, "Something went wrong");
+        assert_eq!(error.detail, Some("Something went wrong".to_string()));
     }
 
     #[test]
@@ -556,7 +562,7 @@ mod tests {
 
         assert_eq!(error.status, StatusCode::BAD_REQUEST);
         assert_eq!(error.title, "Error");
-        assert_eq!(error.detail, "Something went wrong");
+        assert_eq!(error.detail, None);
     }
 
     #[test]
@@ -565,7 +571,7 @@ mod tests {
 
         assert_eq!(error.status, StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(error.title, "Internal Error");
-        assert_eq!(error.detail, "Something went wrong");
+        assert_eq!(error.detail, None);
         assert!(error.error.is_none());
     }
 
@@ -580,7 +586,7 @@ mod tests {
 
         assert_eq!(error.status, StatusCode::CONFLICT);
         assert_eq!(error.title, "Conflict");
-        assert_eq!(error.detail, "User already exists");
+        assert_eq!(error.detail, Some("User already exists".to_string()));
         assert!(error.error.is_some());
     }
 
@@ -590,7 +596,7 @@ mod tests {
 
         assert_eq!(error.status, StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(error.title, "Internal Error");
-        assert_eq!(error.detail, "Something went wrong");
+        assert_eq!(error.detail, None);
         assert!(error.error.is_none());
     }
 
@@ -603,7 +609,7 @@ mod tests {
 
         assert_eq!(api_err.status, StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(api_err.title, "Internal Error");
-        assert_eq!(api_err.detail, "Something went wrong");
+        assert_eq!(api_err.detail, None);
         assert!(api_err.error.is_some());
     }
 
@@ -696,7 +702,10 @@ mod tests {
 
         assert_eq!(api_err.status, StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(api_err.title, "Internal Error");
-        assert_eq!(api_err.detail, "Database connection failed");
+        assert_eq!(
+            api_err.detail,
+            Some("Database connection failed".to_string())
+        );
         assert!(api_err.error.is_some());
 
         set_expose_errors(false);
@@ -712,7 +721,7 @@ mod tests {
 
         assert_eq!(api_err.status, StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(api_err.title, "Internal Error");
-        assert_eq!(api_err.detail, "Something went wrong");
+        assert_eq!(api_err.detail, None);
         assert!(api_err.error.is_some());
     }
 
@@ -724,7 +733,7 @@ mod tests {
         let anyhow_err = anyhow!("Connection timeout");
         let api_err: ApiError = anyhow_err.into();
 
-        assert_eq!(api_err.detail, "Connection timeout");
+        assert_eq!(api_err.detail, Some("Connection timeout".to_string()));
 
         set_expose_errors(false);
     }
@@ -744,7 +753,10 @@ mod tests {
         let api_err: ApiError = anyhow_err.into();
 
         // Should expose details via env var
-        assert_eq!(api_err.detail, "Environment variable test");
+        assert_eq!(
+            api_err.detail,
+            Some("Environment variable test".to_string())
+        );
 
         // Clean up
         unsafe {
@@ -767,7 +779,10 @@ mod tests {
         let api_err: ApiError = anyhow_err.into();
 
         // Should expose details because programmatic setting takes precedence
-        assert_eq!(api_err.detail, "Programmatic override test");
+        assert_eq!(
+            api_err.detail,
+            Some("Programmatic override test".to_string())
+        );
 
         // Clean up
         set_expose_errors(false);
@@ -789,7 +804,7 @@ mod tests {
 
         assert_eq!(error.status, StatusCode::NOT_FOUND);
         assert_eq!(error.title, "Not Found");
-        assert_eq!(error.detail, "User not found");
+        assert_eq!(error.detail, Some("User not found".to_string()));
         assert!(error.meta.is_some());
 
         let meta = error.meta.unwrap();
@@ -878,7 +893,7 @@ mod tests {
 
         assert_eq!(error.status, StatusCode::CONFLICT);
         assert_eq!(error.title, "Conflict");
-        assert_eq!(error.detail, "Resource already exists");
+        assert_eq!(error.detail, Some("Resource already exists".to_string()));
         assert!(error.error.is_some());
         assert!(error.meta.is_some());
 
