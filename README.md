@@ -51,15 +51,13 @@ struct User {
 
 async fn get_user_handler(Path(id): Path<String>) -> ApiResult<Json<User>> {
     // Convert parsing errors to 400 Bad Request
-    let id = parse_id(&id).context_bad_request("Invalid User ID", "User ID must be a u32")?;
+    let id = parse_id(&id).context_bad_request(("Invalid User ID", "User ID must be a u32"))?;
 
     // Convert unexpected errors to 500 Internal Server Error
     let db = Database::connect()?;
 
     // Convert Option::None to 404 Not Found
-    let user = db
-        .get_user(&id)
-        .context_not_found("User Not Found", "No user with that ID")?;
+    let user = db.get_user(&id).context_not_found("User Not Found")?;
 
     Ok(Json(user))
 }
@@ -102,7 +100,7 @@ use anyhow::Result;
 async fn validate_email(email: String) -> ApiResult<String> {
     // Validate and return 400 if invalid
     check_email_format(&email)
-        .context_bad_request("Invalid Email", "Email must contain @")?;
+        .context_bad_request(("Invalid Email", "Email must contain @"))?;
 
     Ok(email)
 }
@@ -125,8 +123,7 @@ use axum_anyhow::{ApiResult, OptionExt};
 
 async fn find_user(id: u32) -> ApiResult<String> {
     // Return 404 if user not found
-    let user = database_lookup(id)
-        .context_not_found("User Not Found", "No user with that ID exists")?;
+    let user = database_lookup(id).context_not_found("User Not Found")?;
 
     Ok(user)
 }
@@ -370,7 +367,7 @@ use axum_anyhow::on_error;
 
 // Set up error logging
 on_error(|err| {
-    tracing::error!("API Error: {} ({}): {}", err.status(), err.title(), err.detail());
+    tracing::error!("API Error: {} ({}): {}", err.status(), err.title(), err.detail().unwrap_or(""));
 });
 ```
 
@@ -383,14 +380,14 @@ use axum::http::StatusCode;
 
 // Set up the hook once at application startup
 on_error(|err| {
-    eprintln!("Error occurred: {}", err.detail());
+    eprintln!("Error occurred: {}", err.detail().unwrap_or(""));
 });
 
 // The hook will be called for all of these:
 let error1: ApiError = bad_request("Invalid Input", "Name is required");
 
 let result: ApiError = anyhow!("Database error")
-    .context_internal("Internal Error", "Failed to connect");
+    .context_internal(("Internal Error", "Failed to connect"));
 
 let error2 = ApiError::builder()
     .status(StatusCode::NOT_FOUND)
@@ -437,7 +434,7 @@ struct User {
 struct ErrorResponse {
     status: u16,
     title: String,
-    detail: String,
+    detail: Option<String>,
 }
 
 async fn get_user_handler(
@@ -452,7 +449,7 @@ async fn get_user_handler(
                 Json(ErrorResponse {
                     status: 400,
                     title: "Invalid User ID".to_string(),
-                    detail: "User ID must be a u32".to_string(),
+                    detail: Some("User ID must be a u32".to_string()),
                 }),
             ));
         }
@@ -467,7 +464,7 @@ async fn get_user_handler(
                 Json(ErrorResponse {
                     status: 500,
                     title: "Internal Error".to_string(),
-                    detail: "Something went wrong".to_string(),
+                    detail: None,
                 }),
             ));
         }
@@ -482,7 +479,7 @@ async fn get_user_handler(
                 Json(ErrorResponse {
                     status: 404,
                     title: "User Not Found".to_string(),
-                    detail: "No user with that ID".to_string(),
+                    detail: None,
                 }),
             ));
         }

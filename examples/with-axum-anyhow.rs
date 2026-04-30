@@ -25,15 +25,13 @@ struct User {
 
 async fn get_user_handler(Path(id): Path<String>) -> ApiResult<Json<User>> {
     // Convert parsing errors to 400 Bad Request
-    let id = parse_id(&id).context_bad_request("Invalid User ID", "User ID must be a u32")?;
+    let id = parse_id(&id).context_bad_request(("Invalid User ID", "User ID must be a u32"))?;
 
     // Convert unexpected errors to 500 Internal Server Error
     let db = Database::connect()?;
 
     // Convert Option::None to 404 Not Found
-    let user = db
-        .get_user(&id)
-        .context_not_found("User Not Found", "No user with that ID")?;
+    let user = db.get_user(&id).context_not_found("User Not Found")?;
 
     Ok(Json(user))
 }

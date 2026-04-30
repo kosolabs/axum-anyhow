@@ -21,7 +21,7 @@ struct User {
 struct ErrorResponse {
     status: u16,
     title: String,
-    detail: String,
+    detail: Option<String>,
 }
 
 async fn get_user_handler(
@@ -36,7 +36,7 @@ async fn get_user_handler(
                 Json(ErrorResponse {
                     status: 400,
                     title: "Invalid User ID".to_string(),
-                    detail: "User ID must be a u32".to_string(),
+                    detail: Some("User ID must be a u32".to_string()),
                 }),
             ));
         }
@@ -51,7 +51,7 @@ async fn get_user_handler(
                 Json(ErrorResponse {
                     status: 500,
                     title: "Internal Error".to_string(),
-                    detail: "Something went wrong".to_string(),
+                    detail: None,
                 }),
             ));
         }
@@ -66,7 +66,7 @@ async fn get_user_handler(
                 Json(ErrorResponse {
                     status: 404,
                     title: "User Not Found".to_string(),
-                    detail: "No user with that ID".to_string(),
+                    detail: None,
                 }),
             ));
         }

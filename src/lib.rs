@@ -1,11 +1,13 @@
 #![doc = include_str!("../README.md")]
 
+mod context;
 mod error;
 mod extensions;
 mod helpers;
 mod hook;
 mod middleware;
 
+pub use context::ApiErrorContext;
 pub use error::{is_expose_errors_enabled, set_expose_errors, ApiError, ApiErrorBuilder};
 pub use extensions::{IntoApiError, OptionExt, ResultExt};
 pub use helpers::{
