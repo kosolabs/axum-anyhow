@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.2](https://github.com/kosolabs/axum-anyhow/compare/v0.11.1...v0.11.2) - 2026-05-19
+
+### Other
+
+- *(deps)* update actions/create-github-app-token action to v3.2.0 ([#136](https://github.com/kosolabs/axum-anyhow/pull/136))
+
 ## [0.11.1](https://github.com/kosolabs/axum-anyhow/compare/v0.11.0...v0.11.1) - 2026-05-12
 
 ### Other
