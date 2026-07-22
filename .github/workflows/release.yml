@@ -22,7 +22,7 @@ jobs:
           app-id: 1855004
           private-key: ${{ secrets.RELEASER_PRIVATE_KEY }}
       - &checkout
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
