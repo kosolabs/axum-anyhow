@@ -19,7 +19,7 @@ jobs:
         id: app
         uses: actions/create-github-app-token@v3.2.0
         with:
-          app-id: 1855004
+          client-id: Iv23liXdlxbyAb7jyk9P
           private-key: ${{ secrets.RELEASER_PRIVATE_KEY }}
       - &checkout
         uses: actions/checkout@v7.0.1
