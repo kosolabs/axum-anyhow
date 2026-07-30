@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.8](https://github.com/kosolabs/axum-anyhow/compare/v0.11.7...v0.11.8) - 2026-07-30
+
+### Other
+
+- use client-id instead of deprecated app-id ([#151](https://github.com/kosolabs/axum-anyhow/pull/151))
+
 ## [0.11.7](https://github.com/kosolabs/axum-anyhow/compare/v0.11.6...v0.11.7) - 2026-07-28
 
 ### Other
