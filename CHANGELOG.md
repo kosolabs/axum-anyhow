@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.11](https://github.com/kosolabs/axum-anyhow/compare/v0.11.10...v0.11.11) - 2026-09-16
+
+### Other
+
+- *(deps)* update release-plz/action action to v0.5.137 ([#158](https://github.com/kosolabs/axum-anyhow/pull/158))
+
 ## [0.11.10](https://github.com/kosolabs/axum-anyhow/compare/v0.11.9...v0.11.10) - 2026-09-08
 
 ### Other
